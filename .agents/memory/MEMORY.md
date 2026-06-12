@@ -1,0 +1,1 @@
+- [AI Mentor Architecture](ai-mentor-arch.md) — Provider abstraction + streaming SSE; plug any of 4 providers via env var

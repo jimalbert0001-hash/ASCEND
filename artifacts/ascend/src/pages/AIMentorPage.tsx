@@ -1,47 +1,287 @@
-import { Bot, Sparkles, Brain, MessageSquare } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { sampleData } from "@/lib/sample-data";
+import { Bot, MessageSquare, Zap, Target, Shield, Calendar, BarChart3, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+import { ChatInterface } from '@/components/ai/ChatInterface';
+import { ConversationHistory } from '@/components/ai/ConversationHistory';
+import { RecommendationPanel } from '@/components/ai/RecommendationPanel';
+import { WeaknessPanel } from '@/components/ai/WeaknessPanel';
+import { GoalAnalysisPanel } from '@/components/ai/GoalAnalysisPanel';
+import { CoachSelector } from '@/components/ai/CoachSelector';
+
+import { useAIStore, type CoachRole, type Recommendation, type WeaknessReport, type GoalAnalysis, type UserContext } from '@/stores/ai.store';
+import { sampleData } from '@/lib/sample-data';
+import { buildUserContext } from '@/lib/ai-api';
+
+function useUserContext(): UserContext {
+  return buildUserContext(sampleData);
+}
 
 export function AIMentorPage() {
-  return (
-    <div className="p-4 md:p-8 space-y-8 max-w-6xl mx-auto">
-      <header className="flex items-center gap-4 mb-8">
-        <div className="p-4 bg-primary/10 rounded-xl">
-          <Bot className="w-8 h-8 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">AI Mentor</h2>
-          <p className="text-muted-foreground mt-1">Intelligence and guidance.</p>
-        </div>
-      </header>
+  const {
+    conversations,
+    activeConversationId,
+    activeRole,
+    dailyRecommendations,
+    morningBriefing,
+    weeklyRecommendations,
+    weeklyDigest,
+    weaknesses,
+    goalAnalyses,
+    setActiveRole,
+    setActiveConversation,
+    newConversation,
+    deleteConversation,
+    setDailyRecommendations,
+    setWeeklyRecommendations,
+    setWeaknesses,
+    setGoalAnalyses,
+  } = useAIStore();
 
-      <Card className="p-8 border-primary/20 bg-primary/5 text-center flex flex-col items-center">
-        <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-6 shadow-sm border border-border">
-          <Bot className="w-8 h-8 text-muted-foreground" />
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<'chat' | 'insights'>('chat');
+
+  const context = useUserContext();
+
+  const handleNewConversation = () => {
+    newConversation(activeRole);
+    setActiveTab('chat');
+  };
+
+  const handleRoleChange = (role: CoachRole) => {
+    setActiveRole(role);
+    newConversation(role);
+    setActiveTab('chat');
+  };
+
+  return (
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+      {sidebarOpen && (
+        <aside className="w-64 flex-shrink-0 border-r border-border flex flex-col bg-background/50">
+          <div className="flex items-center justify-between px-3 py-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <Bot className="w-4 h-4 text-primary" />
+              </div>
+              <span className="font-semibold text-sm">AI Mentor</span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="px-3 py-3 border-b border-border">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">Coach Mode</p>
+            <CoachSelector value={activeRole} onChange={handleRoleChange} compact />
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            <ConversationHistory
+              conversations={conversations}
+              activeId={activeConversationId}
+              onSelect={setActiveConversation}
+              onDelete={deleteConversation}
+              onNew={handleNewConversation}
+            />
+          </div>
+        </aside>
+      )}
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-shrink-0 border-b border-border px-4 py-2.5 flex items-center gap-2">
+          {!sidebarOpen && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <PanelLeftOpen className="w-4 h-4" />
+            </Button>
+          )}
+
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'chat' | 'insights')} className="flex-1">
+            <TabsList className="h-8 bg-muted/50">
+              <TabsTrigger value="chat" className="text-xs h-7 gap-1.5">
+                <MessageSquare className="w-3.5 h-3.5" />
+                Chat
+              </TabsTrigger>
+              <TabsTrigger value="insights" className="text-xs h-7 gap-1.5">
+                <BarChart3 className="w-3.5 h-3.5" />
+                Insights
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
-        <h3 className="text-2xl font-bold tracking-tight mb-2">Coming in Phase 2</h3>
-        <p className="text-muted-foreground max-w-md mx-auto mb-8">
-          The AI Mentor module is currently offline. Phase 2 initialization will deploy intelligent guidance based on your domain data.
-        </p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-3xl">
-          <div className="flex flex-col items-center p-4 bg-background rounded-lg border border-border">
-            <MessageSquare className="w-6 h-6 text-primary mb-3" />
-            <h4 className="font-semibold mb-1">Daily Briefing</h4>
-            <p className="text-xs text-muted-foreground text-center">Personalized morning overview</p>
-          </div>
-          <div className="flex flex-col items-center p-4 bg-background rounded-lg border border-border">
-            <Brain className="w-6 h-6 text-primary mb-3" />
-            <h4 className="font-semibold mb-1">Strategy Coach</h4>
-            <p className="text-xs text-muted-foreground text-center">Domain-specific advice</p>
-          </div>
-          <div className="flex flex-col items-center p-4 bg-background rounded-lg border border-border">
-            <Sparkles className="w-6 h-6 text-primary mb-3" />
-            <h4 className="font-semibold mb-1">Insight Engine</h4>
-            <p className="text-xs text-muted-foreground text-center">Pattern recognition & tips</p>
-          </div>
+
+        <div className="flex-1 overflow-hidden">
+          {activeTab === 'chat' ? (
+            <ChatInterface context={context} />
+          ) : (
+            <InsightsView
+              context={context}
+              dailyRecommendations={dailyRecommendations}
+              morningBriefing={morningBriefing}
+              weeklyRecommendations={weeklyRecommendations}
+              weeklyDigest={weeklyDigest}
+              weaknesses={weaknesses}
+              goalAnalyses={goalAnalyses}
+              onSetDailyRecs={setDailyRecommendations}
+              onSetWeeklyRecs={setWeeklyRecommendations}
+              onSetWeaknesses={setWeaknesses}
+              onSetGoalAnalyses={setGoalAnalyses}
+            />
+          )}
         </div>
-      </Card>
+      </div>
+    </div>
+  );
+}
+
+interface InsightsViewProps {
+  context: UserContext;
+  dailyRecommendations: Recommendation[] | null;
+  morningBriefing: string | null;
+  weeklyRecommendations: Recommendation[] | null;
+  weeklyDigest: string | null;
+  weaknesses: WeaknessReport[] | null;
+  goalAnalyses: GoalAnalysis[] | null;
+  onSetDailyRecs: (recs: Recommendation[], text: string) => void;
+  onSetWeeklyRecs: (recs: Recommendation[], text: string) => void;
+  onSetWeaknesses: (w: WeaknessReport[]) => void;
+  onSetGoalAnalyses: (a: GoalAnalysis[]) => void;
+}
+
+type InsightTab = 'daily' | 'weekly' | 'weaknesses' | 'goals';
+
+const INSIGHT_TABS: { id: InsightTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'daily', label: 'Daily', icon: Calendar },
+  { id: 'weekly', label: 'Weekly', icon: BarChart3 },
+  { id: 'weaknesses', label: 'Weaknesses', icon: Shield },
+  { id: 'goals', label: 'Goals', icon: Target },
+];
+
+function InsightsView({
+  context,
+  dailyRecommendations,
+  morningBriefing,
+  weeklyRecommendations,
+  weeklyDigest,
+  weaknesses,
+  goalAnalyses,
+  onSetDailyRecs,
+  onSetWeeklyRecs,
+  onSetWeaknesses,
+  onSetGoalAnalyses,
+}: InsightsViewProps) {
+  const [activeInsight, setActiveInsight] = useState<InsightTab>('daily');
+
+  return (
+    <div className="flex h-full overflow-hidden">
+      <aside className="w-44 flex-shrink-0 border-r border-border p-2 space-y-1">
+        {INSIGHT_TABS.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveInsight(tab.id)}
+              className={cn(
+                'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors text-left',
+                activeInsight === tab.id
+                  ? 'bg-primary/10 text-primary border border-primary/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              )}
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              {tab.label}
+            </button>
+          );
+        })}
+
+        <div className="pt-4 border-t border-border mt-4">
+          <StatsCard context={context} />
+        </div>
+      </aside>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {activeInsight === 'daily' && (
+          <RecommendationPanel
+            recommendations={dailyRecommendations}
+            morningBriefing={morningBriefing}
+            context={context}
+            type="daily"
+            onUpdate={onSetDailyRecs}
+          />
+        )}
+        {activeInsight === 'weekly' && (
+          <RecommendationPanel
+            recommendations={weeklyRecommendations}
+            weeklyDigest={weeklyDigest}
+            context={context}
+            type="weekly"
+            onUpdate={onSetWeeklyRecs}
+          />
+        )}
+        {activeInsight === 'weaknesses' && (
+          <WeaknessPanel
+            weaknesses={weaknesses}
+            context={context}
+            onUpdate={onSetWeaknesses}
+          />
+        )}
+        {activeInsight === 'goals' && (
+          <GoalAnalysisPanel
+            analyses={goalAnalyses}
+            context={context}
+            onUpdate={onSetGoalAnalyses}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatsCard({ context }: { context: UserContext }) {
+  const items = [
+    { label: 'Streak', value: `${context.reviews?.streak ?? 0}d` },
+    { label: 'Study', value: `${context.user.stats.studyHours}h` },
+    { label: 'Chess', value: `${context.user.stats.chessRating}` },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground font-medium px-1">Your Stats</p>
+      {items.map((item) => (
+        <div key={item.label} className="flex items-center justify-between px-1">
+          <span className="text-xs text-muted-foreground">{item.label}</span>
+          <span className="text-xs font-semibold">{item.value}</span>
+        </div>
+      ))}
+      <div className="pt-2">
+        <p className="text-xs text-muted-foreground px-1 mb-1">Goals</p>
+        {context.goals.slice(0, 3).map((g) => (
+          <div key={g.id} className="px-1 mb-1.5">
+            <div className="flex justify-between mb-0.5">
+              <span className="text-xs truncate text-muted-foreground" style={{ maxWidth: '80%' }}>{g.title.split(' ').slice(0, 3).join(' ')}</span>
+              <span className="text-xs font-medium">{g.progress}%</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-1">
+              <div
+                className="h-1 rounded-full bg-primary/60 transition-all"
+                style={{ width: `${g.progress}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
