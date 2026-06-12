@@ -6,33 +6,50 @@ import { OpenRouterProvider } from './providers/openrouter.js';
 
 export type ProviderName = 'openai' | 'anthropic' | 'gemini' | 'openrouter';
 
-function getProviderName(): ProviderName {
-  const env = (process.env.AI_PROVIDER ?? '').toLowerCase();
+const OPENROUTER_KEY_NAMES = [
+  'OPENROUTER_API_KEY',
+  'Stanford Coach',
+  'OPENROUTER_KEY',
+];
+
+const OPENAI_KEY_NAMES = ['OPENAI_API_KEY', 'OPENAI_KEY'];
+const ANTHROPIC_KEY_NAMES = ['ANTHROPIC_API_KEY', 'ANTHROPIC_KEY'];
+const GEMINI_KEY_NAMES = ['GEMINI_API_KEY', 'GOOGLE_API_KEY', 'GEMINI_KEY'];
+
+function findKey(names: string[]): string {
+  for (const name of names) {
+    const val = process.env[name];
+    if (val) return val;
+  }
+  return '';
+}
+
+function autoDetectProvider(): ProviderName {
+  const explicit = (process.env.AI_PROVIDER ?? '').toLowerCase() as ProviderName;
   const valid: ProviderName[] = ['openai', 'anthropic', 'gemini', 'openrouter'];
-  return valid.includes(env as ProviderName) ? (env as ProviderName) : 'openai';
+  if (valid.includes(explicit)) return explicit;
+
+  if (findKey(ANTHROPIC_KEY_NAMES)) return 'anthropic';
+  if (findKey(GEMINI_KEY_NAMES)) return 'gemini';
+  if (findKey(OPENROUTER_KEY_NAMES)) return 'openrouter';
+  if (findKey(OPENAI_KEY_NAMES)) return 'openai';
+
+  return 'openai';
 }
 
 export function createProvider(): AIProvider {
-  const provider = getProviderName();
+  const provider = autoDetectProvider();
 
   switch (provider) {
-    case 'anthropic': {
-      const key = process.env.ANTHROPIC_API_KEY ?? '';
-      return new AnthropicProvider(key);
-    }
-    case 'gemini': {
-      const key = process.env.GEMINI_API_KEY ?? '';
-      return new GeminiProvider(key);
-    }
-    case 'openrouter': {
-      const key = process.env.OPENROUTER_API_KEY ?? '';
-      return new OpenRouterProvider(key);
-    }
+    case 'anthropic':
+      return new AnthropicProvider(findKey(ANTHROPIC_KEY_NAMES));
+    case 'gemini':
+      return new GeminiProvider(findKey(GEMINI_KEY_NAMES));
+    case 'openrouter':
+      return new OpenRouterProvider(findKey(OPENROUTER_KEY_NAMES));
     case 'openai':
-    default: {
-      const key = process.env.OPENAI_API_KEY ?? '';
-      return new OpenAIProvider(key);
-    }
+    default:
+      return new OpenAIProvider(findKey(OPENAI_KEY_NAMES));
   }
 }
 
@@ -47,18 +64,31 @@ export function getProviderStatus(): {
   provider: string;
   configured: boolean;
   envVar: string;
+  model: string;
 } {
-  const name = getProviderName();
-  const envVarMap: Record<ProviderName, string> = {
-    openai: 'OPENAI_API_KEY',
-    anthropic: 'ANTHROPIC_API_KEY',
-    gemini: 'GEMINI_API_KEY',
-    openrouter: 'OPENROUTER_API_KEY',
+  const name = autoDetectProvider();
+
+  const keyMap: Record<ProviderName, string[]> = {
+    openai: OPENAI_KEY_NAMES,
+    anthropic: ANTHROPIC_KEY_NAMES,
+    gemini: GEMINI_KEY_NAMES,
+    openrouter: OPENROUTER_KEY_NAMES,
   };
-  const envVar = envVarMap[name];
+
+  const defaultModelMap: Record<ProviderName, string> = {
+    openai: 'gpt-4o-mini',
+    anthropic: 'claude-3-5-haiku-20241022',
+    gemini: 'gemini-1.5-flash',
+    openrouter: 'meta-llama/llama-3.1-8b-instruct:free',
+  };
+
+  const foundKey = findKey(keyMap[name]);
+  const envVarFound = keyMap[name].find((n) => process.env[n]) ?? keyMap[name][0];
+
   return {
     provider: name,
-    configured: Boolean(process.env[envVar]),
-    envVar,
+    configured: Boolean(foundKey),
+    envVar: envVarFound,
+    model: process.env.AI_MODEL ?? defaultModelMap[name],
   };
 }
