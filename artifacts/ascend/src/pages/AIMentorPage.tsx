@@ -1,9 +1,8 @@
-import { Bot, MessageSquare, Zap, Target, Shield, Calendar, BarChart3, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { useState } from 'react';
+import { Bot, MessageSquare, BarChart3, Calendar, Target, Shield, PanelLeftClose, PanelLeftOpen, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { ChatInterface } from '@/components/ai/ChatInterface';
 import { ConversationHistory } from '@/components/ai/ConversationHistory';
@@ -13,11 +12,18 @@ import { GoalAnalysisPanel } from '@/components/ai/GoalAnalysisPanel';
 import { CoachSelector } from '@/components/ai/CoachSelector';
 
 import { useAIStore, type CoachRole, type Recommendation, type WeaknessReport, type GoalAnalysis, type UserContext } from '@/stores/ai.store';
-import { sampleData } from '@/lib/sample-data';
-import { buildUserContext } from '@/lib/ai-api';
+import { useAuthStore } from '@/stores/auth.store';
 
-function useUserContext(): UserContext {
-  return buildUserContext(sampleData);
+const BASE = '/api/ai';
+
+async function fetchContext(userId: string): Promise<UserContext | null> {
+  try {
+    const res = await fetch(`${BASE}/context?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return null;
+    return res.json() as Promise<UserContext>;
+  } catch {
+    return null;
+  }
 }
 
 export function AIMentorPage() {
@@ -41,10 +47,20 @@ export function AIMentorPage() {
     setGoalAnalyses,
   } = useAIStore();
 
+  const { user } = useAuthStore();
+  const userId = user?.id ?? 'mock-user-1';
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<'chat' | 'insights'>('chat');
+  const [context, setContext] = useState<UserContext | null>(null);
+  const [contextLoading, setContextLoading] = useState(true);
 
-  const context = useUserContext();
+  useEffect(() => {
+    setContextLoading(true);
+    fetchContext(userId)
+      .then(setContext)
+      .finally(() => setContextLoading(false));
+  }, [userId]);
 
   const handleNewConversation = () => {
     newConversation(activeRole);
@@ -92,6 +108,17 @@ export function AIMentorPage() {
               onNew={handleNewConversation}
             />
           </div>
+
+          <div className="px-3 py-3 border-t border-border">
+            {contextLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Loading your data…
+              </div>
+            ) : context ? (
+              <StatsCard context={context} />
+            ) : null}
+          </div>
         </aside>
       )}
 
@@ -124,10 +151,10 @@ export function AIMentorPage() {
 
         <div className="flex-1 overflow-hidden">
           {activeTab === 'chat' ? (
-            <ChatInterface context={context} />
+            <ChatInterface userId={userId} />
           ) : (
             <InsightsView
-              context={context}
+              userId={userId}
               dailyRecommendations={dailyRecommendations}
               morningBriefing={morningBriefing}
               weeklyRecommendations={weeklyRecommendations}
@@ -147,7 +174,7 @@ export function AIMentorPage() {
 }
 
 interface InsightsViewProps {
-  context: UserContext;
+  userId: string;
   dailyRecommendations: Recommendation[] | null;
   morningBriefing: string | null;
   weeklyRecommendations: Recommendation[] | null;
@@ -170,7 +197,7 @@ const INSIGHT_TABS: { id: InsightTab; label: string; icon: React.ComponentType<{
 ];
 
 function InsightsView({
-  context,
+  userId,
   dailyRecommendations,
   morningBriefing,
   weeklyRecommendations,
@@ -205,10 +232,6 @@ function InsightsView({
             </button>
           );
         })}
-
-        <div className="pt-4 border-t border-border mt-4">
-          <StatsCard context={context} />
-        </div>
       </aside>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -216,7 +239,7 @@ function InsightsView({
           <RecommendationPanel
             recommendations={dailyRecommendations}
             morningBriefing={morningBriefing}
-            context={context}
+            userId={userId}
             type="daily"
             onUpdate={onSetDailyRecs}
           />
@@ -225,7 +248,7 @@ function InsightsView({
           <RecommendationPanel
             recommendations={weeklyRecommendations}
             weeklyDigest={weeklyDigest}
-            context={context}
+            userId={userId}
             type="weekly"
             onUpdate={onSetWeeklyRecs}
           />
@@ -233,14 +256,14 @@ function InsightsView({
         {activeInsight === 'weaknesses' && (
           <WeaknessPanel
             weaknesses={weaknesses}
-            context={context}
+            userId={userId}
             onUpdate={onSetWeaknesses}
           />
         )}
         {activeInsight === 'goals' && (
           <GoalAnalysisPanel
             analyses={goalAnalyses}
-            context={context}
+            userId={userId}
             onUpdate={onSetGoalAnalyses}
           />
         )}
@@ -258,30 +281,32 @@ function StatsCard({ context }: { context: UserContext }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground font-medium px-1">Your Stats</p>
+      <p className="text-xs text-muted-foreground font-medium">Your Stats</p>
       {items.map((item) => (
-        <div key={item.label} className="flex items-center justify-between px-1">
+        <div key={item.label} className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{item.label}</span>
           <span className="text-xs font-semibold">{item.value}</span>
         </div>
       ))}
-      <div className="pt-2">
-        <p className="text-xs text-muted-foreground px-1 mb-1">Goals</p>
-        {context.goals.slice(0, 3).map((g) => (
-          <div key={g.id} className="px-1 mb-1.5">
-            <div className="flex justify-between mb-0.5">
-              <span className="text-xs truncate text-muted-foreground" style={{ maxWidth: '80%' }}>{g.title.split(' ').slice(0, 3).join(' ')}</span>
-              <span className="text-xs font-medium">{g.progress}%</span>
+      {context.goals.length > 0 && (
+        <div className="pt-2">
+          <p className="text-xs text-muted-foreground mb-1">Goals</p>
+          {context.goals.slice(0, 3).map((g) => (
+            <div key={g.id} className="mb-1.5">
+              <div className="flex justify-between mb-0.5">
+                <span className="text-xs truncate text-muted-foreground" style={{ maxWidth: '80%' }}>{g.title.split(' ').slice(0, 3).join(' ')}</span>
+                <span className="text-xs font-medium">{g.progress}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-1">
+                <div
+                  className="h-1 rounded-full bg-primary/60 transition-all"
+                  style={{ width: `${g.progress}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-muted rounded-full h-1">
-              <div
-                className="h-1 rounded-full bg-primary/60 transition-all"
-                style={{ width: `${g.progress}%` }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

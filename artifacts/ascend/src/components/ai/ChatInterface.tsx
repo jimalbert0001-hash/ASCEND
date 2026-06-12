@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { MessageBubble } from './MessageBubble';
 import { CoachSelector } from './CoachSelector';
-import { useAIStore, type CoachRole, type UserContext } from '@/stores/ai.store';
+import { useAIStore, type CoachRole } from '@/stores/ai.store';
 import { sendChatMessageStream, checkProviderStatus } from '@/lib/ai-api';
 import type { AIMessage } from '@/lib/ai-api';
 
@@ -57,10 +57,10 @@ interface ProviderStatus {
 }
 
 interface ChatInterfaceProps {
-  context: UserContext;
+  userId: string;
 }
 
-export function ChatInterface({ context }: ChatInterfaceProps) {
+export function ChatInterface({ userId }: ChatInterfaceProps) {
   const {
     conversations,
     activeConversationId,
@@ -119,7 +119,7 @@ export function ChatInterface({ context }: ChatInterfaceProps) {
     setStreamingContent('');
 
     try {
-      await sendChatMessageStream(history, activeRole, context, (chunk) => {
+      await sendChatMessageStream(history, activeRole, userId, (chunk) => {
         if (!ac.signal.aborted) {
           appendStreamChunk(convId, chunk);
         }
@@ -142,7 +142,7 @@ export function ChatInterface({ context }: ChatInterfaceProps) {
     input,
     isStreaming,
     activeRole,
-    context,
+    userId,
     ensureConversation,
     addMessage,
     appendStreamChunk,

@@ -28,9 +28,9 @@ export async function checkProviderStatus(): Promise<{
 export async function sendChatMessage(
   messages: AIMessage[],
   role: CoachRole,
-  context: UserContext
+  userId: string
 ): Promise<string> {
-  const res = await apiFetch('/chat', { messages, role, context, stream: false });
+  const res = await apiFetch('/chat', { messages, role, userId, stream: false });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -42,10 +42,10 @@ export async function sendChatMessage(
 export async function sendChatMessageStream(
   messages: AIMessage[],
   role: CoachRole,
-  context: UserContext,
+  userId: string,
   onChunk: (chunk: string) => void
 ): Promise<void> {
-  const res = await apiFetch('/chat', { messages, role, context, stream: true });
+  const res = await apiFetch('/chat', { messages, role, userId, stream: true });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -76,11 +76,11 @@ export async function sendChatMessageStream(
   }
 }
 
-export async function getDailyRecommendations(context: UserContext): Promise<{
+export async function getDailyRecommendations(userId: string): Promise<{
   recommendations: Recommendation[];
   morningBriefing: string;
 }> {
-  const res = await apiFetch('/recommendations/daily', { context });
+  const res = await apiFetch('/recommendations/daily', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -88,11 +88,11 @@ export async function getDailyRecommendations(context: UserContext): Promise<{
   return res.json();
 }
 
-export async function getWeeklyRecommendations(context: UserContext): Promise<{
+export async function getWeeklyRecommendations(userId: string): Promise<{
   recommendations: Recommendation[];
   weeklyDigest: string;
 }> {
-  const res = await apiFetch('/recommendations/weekly', { context });
+  const res = await apiFetch('/recommendations/weekly', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -100,10 +100,10 @@ export async function getWeeklyRecommendations(context: UserContext): Promise<{
   return res.json();
 }
 
-export async function detectWeaknesses(context: UserContext): Promise<{
+export async function detectWeaknesses(userId: string): Promise<{
   weaknesses: WeaknessReport[];
 }> {
-  const res = await apiFetch('/recommendations/weaknesses', { context });
+  const res = await apiFetch('/recommendations/weaknesses', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -111,10 +111,10 @@ export async function detectWeaknesses(context: UserContext): Promise<{
   return res.json();
 }
 
-export async function analyzeGoals(context: UserContext): Promise<{
+export async function analyzeGoals(userId: string): Promise<{
   analyses: GoalAnalysis[];
 }> {
-  const res = await apiFetch('/analyze/goals', { context });
+  const res = await apiFetch('/analyze/goals', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -122,30 +122,11 @@ export async function analyzeGoals(context: UserContext): Promise<{
   return res.json();
 }
 
-export function buildUserContext(sampleData: typeof import('@/lib/sample-data').sampleData): UserContext {
+export function buildUserContext(_sampleData: unknown): UserContext {
   return {
-    user: {
-      name: sampleData.user.name,
-      stats: sampleData.user.stats,
-      activeDomains: sampleData.user.activeDomains,
-    },
-    goals: sampleData.goals,
-    tasks: sampleData.tasks,
-    achievements: sampleData.achievements,
-    studyData: {
-      totalHours: sampleData.user.stats.studyHours,
-    },
-    chessData: {
-      currentRating: sampleData.user.stats.chessRating,
-      ratingGoal: 1800,
-    },
-    reviews: {
-      lastDailyScore: sampleData.dailyScore,
-      weeklyAvgScore: Math.round(
-        sampleData.weeklyScores.filter((s) => s > 0).reduce((a, b) => a + b, 0) /
-          sampleData.weeklyScores.filter((s) => s > 0).length
-      ),
-      streak: sampleData.streak.current,
-    },
+    user: { name: 'User', stats: { studyHours: 0, chessRating: 0, habitStreak: 0 }, activeDomains: [] },
+    goals: [],
+    tasks: [],
+    achievements: [],
   };
 }

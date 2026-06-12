@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { Recommendation, UserContext } from '@/stores/ai.store';
+import type { Recommendation } from '@/stores/ai.store';
 import { getDailyRecommendations, getWeeklyRecommendations } from '@/lib/ai-api';
 
 const TYPE_ICONS = {
@@ -38,11 +38,7 @@ const DOMAIN_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   life: Activity,
 };
 
-interface RecommendationCardProps {
-  rec: Recommendation;
-}
-
-function RecommendationCard({ rec }: RecommendationCardProps) {
+function RecommendationCard({ rec }: { rec: Recommendation }) {
   const [expanded, setExpanded] = useState(false);
   const TypeIcon = TYPE_ICONS[rec.type] ?? Zap;
   const DomainIcon = DOMAIN_ICONS[rec.domain] ?? Activity;
@@ -81,7 +77,7 @@ interface RecommendationPanelProps {
   recommendations: Recommendation[] | null;
   morningBriefing?: string | null;
   weeklyDigest?: string | null;
-  context: UserContext;
+  userId: string;
   type: 'daily' | 'weekly';
   onUpdate: (recs: Recommendation[], text: string) => void;
 }
@@ -90,7 +86,7 @@ export function RecommendationPanel({
   recommendations,
   morningBriefing,
   weeklyDigest,
-  context,
+  userId,
   type,
   onUpdate,
 }: RecommendationPanelProps) {
@@ -104,10 +100,10 @@ export function RecommendationPanel({
     setError(null);
     try {
       if (type === 'daily') {
-        const data = await getDailyRecommendations(context);
+        const data = await getDailyRecommendations(userId);
         onUpdate(data.recommendations, data.morningBriefing);
       } else {
-        const data = await getWeeklyRecommendations(context);
+        const data = await getWeeklyRecommendations(userId);
         onUpdate(data.recommendations, data.weeklyDigest);
       }
     } catch (err) {

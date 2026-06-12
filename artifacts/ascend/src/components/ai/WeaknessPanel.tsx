@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { WeaknessReport, UserContext } from '@/stores/ai.store';
+import type { WeaknessReport } from '@/stores/ai.store';
 import { detectWeaknesses } from '@/lib/ai-api';
 
 const SEVERITY_CONFIG = {
@@ -29,11 +29,11 @@ const SEVERITY_CONFIG = {
 
 interface WeaknessPanelProps {
   weaknesses: WeaknessReport[] | null;
-  context: UserContext;
+  userId: string;
   onUpdate: (weaknesses: WeaknessReport[]) => void;
 }
 
-export function WeaknessPanel({ weaknesses, context, onUpdate }: WeaknessPanelProps) {
+export function WeaknessPanel({ weaknesses, userId, onUpdate }: WeaknessPanelProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export function WeaknessPanel({ weaknesses, context, onUpdate }: WeaknessPanelPr
     setLoading(true);
     setError(null);
     try {
-      const data = await detectWeaknesses(context);
+      const data = await detectWeaknesses(userId);
       onUpdate(data.weaknesses);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to detect weaknesses');

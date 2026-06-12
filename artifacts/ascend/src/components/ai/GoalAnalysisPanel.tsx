@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { GoalAnalysis, UserContext } from '@/stores/ai.store';
+import type { GoalAnalysis } from '@/stores/ai.store';
 import { analyzeGoals } from '@/lib/ai-api';
 
 const RISK_CONFIG = {
@@ -112,11 +112,11 @@ function GoalCard({ analysis }: { analysis: GoalAnalysis }) {
 
 interface GoalAnalysisPanelProps {
   analyses: GoalAnalysis[] | null;
-  context: UserContext;
+  userId: string;
   onUpdate: (analyses: GoalAnalysis[]) => void;
 }
 
-export function GoalAnalysisPanel({ analyses, context, onUpdate }: GoalAnalysisPanelProps) {
+export function GoalAnalysisPanel({ analyses, userId, onUpdate }: GoalAnalysisPanelProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,7 +124,7 @@ export function GoalAnalysisPanel({ analyses, context, onUpdate }: GoalAnalysisP
     setLoading(true);
     setError(null);
     try {
-      const data = await analyzeGoals(context);
+      const data = await analyzeGoals(userId);
       onUpdate(data.analyses);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze goals');

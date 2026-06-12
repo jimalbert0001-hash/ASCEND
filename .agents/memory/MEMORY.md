@@ -1,1 +1,3 @@
 - [AI Mentor Architecture](ai-mentor-arch.md) — Provider abstraction + streaming SSE; plug any of 4 providers via env var
+- [DB context architecture](db-context-architecture.md) — AI Mentor reads DB server-side via Drizzle; frontend only passes userId, never builds context itself.
+- [Seed script location](seed-location.md) — Seed lives at lib/db/src/seed.ts; run via: node /path/to/pnpm-store/tsx/dist/cli.mjs src/seed.ts from lib/db directory.
