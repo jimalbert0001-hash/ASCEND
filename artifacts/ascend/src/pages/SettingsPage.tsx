@@ -8,9 +8,22 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2 } from "lucide-react";
+import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchChessAccounts, saveChessAccounts } from "@/lib/chess-api";
+import { useStatsStore } from "@/stores/stats.store";
+import { fetchGoals, saveGoals } from "@/lib/goals-api";
+import { EditableField } from "@/components/ui/EditableField";
+
+const getDomainColor = (domain: string) => {
+  switch (domain) {
+    case 'academics': return 'bg-chart-1';
+    case 'startup': return 'bg-chart-2';
+    case 'chess': return 'bg-chart-3';
+    case 'guitar': return 'bg-chart-4';
+    default: return 'bg-primary';
+  }
+};
 
 const COACH_META: Record<CoachRole, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string; placeholder: string }> = {
   achievement: {
@@ -71,6 +84,11 @@ export function SettingsPage() {
   const [chessSaving, setChessSaving] = useState(false);
   const [chessSaved, setChessSaved] = useState(false);
 
+  // Goals management
+  const { goals, updateGoal, loadGoalsFromServer } = useStatsStore();
+  const [goalsLoading, setGoalsLoading] = useState(false);
+  const [goalsSaved, setGoalsSaved] = useState(false);
+
   useEffect(() => {
     if (!user?.id) return;
     fetchChessAccounts(user.id).then(acc => {
@@ -78,6 +96,27 @@ export function SettingsPage() {
       setLichessUsername(acc.lichessUsername || 'princeplaysch');
     }).catch(() => {
       // defaults already set
+    });
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    setGoalsLoading(true);
+    fetchGoals(user.id).then((serverGoals) => {
+      const mapped = serverGoals.map((g) => ({
+        id: g.id,
+        title: g.title,
+        domain: g.domain,
+        progress: g.progress,
+        targetValue: g.targetValue ?? undefined,
+        description: g.description ?? undefined,
+        status: g.status ?? 'in_progress',
+      }));
+      loadGoalsFromServer(mapped);
+    }).catch(() => {
+      // use persisted defaults
+    }).finally(() => {
+      setGoalsLoading(false);
     });
   }, [user?.id]);
 
@@ -95,6 +134,29 @@ export function SettingsPage() {
       console.error('Failed to save chess accounts', e);
     } finally {
       setChessSaving(false);
+    }
+  }
+
+  async function handleSaveGoals() {
+    if (!user?.id) return;
+    setGoalsLoading(true);
+    try {
+      const payload = goals.map((g) => ({
+        id: g.id,
+        domain: g.domain,
+        title: g.title,
+        description: g.description,
+        progress: g.progress,
+        targetValue: g.targetValue,
+        status: g.status ?? 'in_progress',
+      }));
+      await saveGoals(user.id, payload);
+      setGoalsSaved(true);
+      setTimeout(() => setGoalsSaved(false), 2000);
+    } catch (e) {
+      console.error('Failed to save goals', e);
+    } finally {
+      setGoalsLoading(false);
     }
   }
 
@@ -289,6 +351,73 @@ export function SettingsPage() {
             size="sm"
           >
             {chessSaved ? <CheckCircle2 className="w-4 h-4" /> : chessSaving ? 'Saving...' : 'Save Accounts'}
+          </Button>
+        </Card>
+
+        {/* Goals Management */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-4 h-4 text-primary" />
+            <h3 className="text-lg font-bold">Goals</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Edit your targets for each domain. Changes sync across the dashboard.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            {goals.map((goal) => (
+              <div key={goal.id} className="bg-muted/50 rounded-lg p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className={cn("w-2 h-2 rounded-full", getDomainColor(goal.domain))} />
+                  <span className="text-xs font-medium text-muted-foreground uppercase">{goal.domain}</span>
+                </div>
+                <div>
+                  <Label className="text-xs mb-1 block">Title</Label>
+                  <EditableField
+                    value={goal.title}
+                    onSave={(val) => updateGoal(goal.id, { title: String(val) })}
+                    type="text"
+                    className="text-sm font-semibold"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs mb-1 block">Progress</Label>
+                    <EditableField
+                      value={goal.progress}
+                      onSave={(val) => updateGoal(goal.id, { progress: Number(val) })}
+                      min={0}
+                      max={100}
+                      suffix="%"
+                      className="text-sm"
+                      compact
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs mb-1 block">Target</Label>
+                    <EditableField
+                      value={goal.targetValue ?? 0}
+                      onSave={(val) => updateGoal(goal.id, { targetValue: Number(val) })}
+                      className="text-sm"
+                      compact
+                    />
+                  </div>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={cn("h-full", getDomainColor(goal.domain))}
+                    style={{ width: `${goal.progress}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button
+            onClick={handleSaveGoals}
+            disabled={goalsLoading}
+            className="gap-2"
+            size="sm"
+          >
+            {goalsSaved ? <CheckCircle2 className="w-4 h-4" /> : goalsLoading ? 'Saving...' : 'Save Goals'}
           </Button>
         </Card>
 

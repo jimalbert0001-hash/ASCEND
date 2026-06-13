@@ -29,7 +29,10 @@ async function fetchUser(): Promise<AuthUser | null> {
   return res.json();
 }
 
+const MOCK_DEV_USER: AuthUser = { id: 'mock-user-1', email: 'alex@example.com', name: 'Alex Mercer' };
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const isDev = import.meta.env.DEV;
   const { data: user, isLoading } = useQuery<AuthUser | null>({
     queryKey: ['/api/auth/user'],
     queryFn: fetchUser,
@@ -41,8 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/api/logout';
   };
 
+  const effectiveUser = user ?? (isDev ? MOCK_DEV_USER : null);
+
   return (
-    <AuthContext.Provider value={{ user: user ?? null, loading: isLoading, signOut }}>
+    <AuthContext.Provider value={{ user: effectiveUser, loading: isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

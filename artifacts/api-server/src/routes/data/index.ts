@@ -132,4 +132,113 @@ router.get('/tasks', async (req, res) => {
   }
 });
 
+// ─── Goals ───────────────────────────────────────────────────────────
+
+const DEFAULT_GOALS: Array<{
+  id: string;
+  domain: 'academics' | 'startup' | 'chess' | 'guitar' | 'life';
+  title: string;
+  description: string;
+  progress: number;
+  targetValue: number;
+}> = [
+  { id: 'goal-chess', domain: 'chess', title: 'Reach 1800 Chess Rating', description: 'Rapid rating target', progress: 72, targetValue: 1800 },
+  { id: 'goal-academics', domain: 'academics', title: 'Score 95%+ in Physics', description: 'Academic score target', progress: 68, targetValue: 95 },
+  { id: 'goal-guitar', domain: 'guitar', title: 'Master Fingerpicking', description: 'Guitar skill target', progress: 55, targetValue: 100 },
+  { id: 'goal-startup', domain: 'startup', title: 'Launch MVP', description: 'Startup milestone', progress: 40, targetValue: 100 },
+];
+
+router.get('/goals', async (req, res) => {
+  const userId = req.query.userId as string | undefined;
+  if (!userId) { res.status(400).json({ error: 'userId required' }); return; }
+  try {
+    const userGoals = await db.select().from(goals)
+      .where(eq(goals.userId, userId));
+
+    if (userGoals.length === 0) {
+      // Seed default goals
+      const now = new Date();
+      for (const g of DEFAULT_GOALS) {
+        await db.insert(goals).values({
+          id: g.id,
+          userId,
+          domain: g.domain as any,
+          title: g.title,
+          description: g.description,
+          progress: String(g.progress),
+          status: 'in_progress' as any,
+          priority: 'high' as any,
+          aiMetadata: { targetValue: g.targetValue },
+          createdAt: now,
+          updatedAt: now,
+        }).onConflictDoNothing();
+      }
+      const seeded = await db.select().from(goals).where(eq(goals.userId, userId));
+      res.json(seeded);
+      return;
+    }
+
+    res.json(userGoals);
+  } catch (err) {
+    logger.error({ err }, 'Failed to fetch goals');
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
+router.put('/goals', async (req, res) => {
+  const userId = req.body.userId as string | undefined;
+  const goalsList = req.body.goals as Array<{
+    id: string;
+    domain?: string;
+    title?: string;
+    description?: string;
+    progress?: number;
+    targetValue?: number;
+    status?: string;
+  }> | undefined;
+
+  if (!userId || !goalsList || !Array.isArray(goalsList)) {
+    res.status(400).json({ error: 'userId and goals array required' });
+    return;
+  }
+
+  try {
+    const now = new Date();
+    for (const g of goalsList) {
+      await db.insert(goals)
+        .values({
+          id: g.id,
+          userId,
+          domain: (g.domain as any) ?? 'life',
+          title: g.title ?? 'Goal',
+          description: g.description,
+          progress: String(g.progress ?? 0),
+          status: (g.status as any) ?? 'in_progress',
+          priority: 'high' as any,
+          aiMetadata: { targetValue: g.targetValue },
+          createdAt: now,
+          updatedAt: now,
+        } as any)
+        .onConflictDoUpdate({
+          target: goals.id,
+          set: {
+            title: g.title ?? undefined,
+            description: g.description ?? undefined,
+            progress: g.progress !== undefined ? String(g.progress) : undefined,
+            domain: (g.domain as any) ?? undefined,
+            status: (g.status as any) ?? undefined,
+            aiMetadata: g.targetValue !== undefined ? { targetValue: g.targetValue } : undefined,
+            updatedAt: now,
+          },
+        });
+    }
+
+    const updated = await db.select().from(goals).where(eq(goals.userId, userId));
+    res.json(updated);
+  } catch (err) {
+    logger.error({ err }, 'Failed to save goals');
+    res.status(500).json({ error: 'DB error' });
+  }
+});
+
 export default router;

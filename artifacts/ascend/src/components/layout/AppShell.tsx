@@ -4,8 +4,13 @@ import { TopBar } from "./TopBar";
 import { MobileNav } from "./MobileNav";
 import { useAuth } from "@/providers/AuthProvider";
 
+const MOCK_DEV_USER = { id: 'mock-user-1', email: 'alex@example.com', name: 'Alex Mercer' };
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+
+  const isDev = import.meta.env.DEV;
+  const effectiveUser = user ?? (isDev ? MOCK_DEV_USER : null);
 
   if (loading) {
     return (
@@ -18,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) {
+  if (!effectiveUser) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-6">
         <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-2xl">

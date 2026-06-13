@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DailyScoreCard } from "@/components/dashboard/DailyScoreCard";
 import { WeeklyProgress } from "@/components/dashboard/WeeklyProgress";
 import { StreakCounter } from "@/components/dashboard/StreakCounter";
@@ -12,9 +12,32 @@ import { ChessSnapshot } from "@/components/dashboard/ChessSnapshot";
 import { GuitarSnapshot } from "@/components/dashboard/GuitarSnapshot";
 import { DailyReviewModal } from "@/components/dashboard/DailyReviewModal";
 import { motion } from "framer-motion";
+import { useAuth } from "@/providers/AuthProvider";
+import { useStatsStore } from "@/stores/stats.store";
+import { fetchGoals, parseGoalProgress } from "@/lib/goals-api";
 
 export function DashboardPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
+  const { user } = useAuth();
+  const loadGoalsFromServer = useStatsStore((s) => s.loadGoalsFromServer);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchGoals(user.id).then((serverGoals) => {
+      const mapped = serverGoals.map((g) => ({
+        id: g.id,
+        title: g.title,
+        domain: g.domain,
+        progress: parseGoalProgress(g.progress),
+        targetValue: g.targetValue ?? undefined,
+        description: g.description ?? undefined,
+        status: g.status ?? 'in_progress',
+      }));
+      loadGoalsFromServer(mapped);
+    }).catch((err) => {
+      console.warn('Failed to load goals from server:', err);
+    });
+  }, [user?.id]);
 
   const container = {
     hidden: { opacity: 0 },

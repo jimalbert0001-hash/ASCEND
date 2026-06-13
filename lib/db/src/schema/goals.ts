@@ -10,7 +10,7 @@ import { domainTypeEnum, goalStatusEnum, taskPriorityEnum } from "./enums";
 import { users } from "./users";
 
 export const goals = pgTable("goals", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text("id").primaryKey(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),

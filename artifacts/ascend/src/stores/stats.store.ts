@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { sampleData } from '@/lib/sample-data';
+import { fetchGoals } from '@/lib/goals-api';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -10,6 +11,9 @@ export type Goal = {
   domain: string;
   progress: number;
   label?: string;
+  targetValue?: number;
+  description?: string;
+  status?: string;
 };
 
 export type Task = {
@@ -93,6 +97,8 @@ interface StatsState {
   setWeeklyScore: (index: number, score: number) => void;
   updateGoal: (id: string, updates: Partial<Goal>) => void;
   setGoals: (goals: Goal[]) => void;
+  loadGoalsFromServer: (goals: Goal[]) => void;
+  saveGoalsToServer: () => Promise<void>;
   updateTask: (id: string, updates: Partial<Task>) => void;
   toggleTask: (id: string) => void;
   setTasks: (tasks: Task[]) => void;
@@ -110,7 +116,8 @@ interface StatsState {
 const initialState: Omit<StatsState, keyof {
   setCurrentStreak: unknown; setLongestStreak: unknown; setDailyScore: unknown;
   setWeeklyScores: unknown; setWeeklyScore: unknown; updateGoal: unknown;
-  setGoals: unknown; updateTask: unknown; toggleTask: unknown; setTasks: unknown;
+  setGoals: unknown; loadGoalsFromServer: unknown; saveGoalsToServer: unknown;
+  updateTask: unknown; toggleTask: unknown; setTasks: unknown;
   setChessStats: unknown; updateChessStat: unknown; setGuitarStats: unknown;
   updateGuitarStat: unknown; setStartupStats: unknown; updateStartupStat: unknown;
   setProfile: unknown; updateProfile: unknown; resetAll: unknown;
@@ -183,6 +190,22 @@ export const useStatsStore = create<StatsState>()(
           goals: s.goals.map((g) => (g.id === id ? { ...g, ...updates } : g)),
         })),
       setGoals: (goals) => set({ goals }),
+      loadGoalsFromServer: (serverGoals) =>
+        set(() => ({
+          goals: serverGoals.map((g) => ({
+            id: g.id,
+            title: g.title,
+            domain: g.domain,
+            progress: g.progress,
+            targetValue: g.targetValue,
+            description: g.description,
+            status: g.status,
+            label: g.targetValue !== undefined ? String(g.targetValue) : undefined,
+          })),
+        })),
+      saveGoalsToServer: async () => {
+        // No-op: saved explicitly by the UI
+      },
 
       updateTask: (id, updates) =>
         set((s) => ({
