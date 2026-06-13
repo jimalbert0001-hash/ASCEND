@@ -1,20 +1,3 @@
-import { create } from 'zustand';
-import { User, Session } from '@supabase/supabase-js';
-
-interface AuthState {
-  user: User | null;
-  session: Session | null;
-  loading: boolean;
-  setUser: (user: User | null) => void;
-  setSession: (session: Session | null) => void;
-  setLoading: (loading: boolean) => void;
-}
-
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  session: null,
-  loading: true,
-  setUser: (user) => set({ user }),
-  setSession: (session) => set({ session }),
-  setLoading: (loading) => set({ loading }),
-}));
+// Auth state is now managed by AuthProvider via TanStack Query + Replit Auth.
+// This file is kept for backward compatibility but is no longer the source of truth.
+export {};

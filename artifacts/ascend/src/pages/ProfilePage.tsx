@@ -9,7 +9,7 @@ export function ProfilePage() {
   const { user } = useAuth();
   const { profile, updateProfile } = useStatsStore();
 
-  const displayName = user?.user_metadata?.name || profile.name;
+  const displayName = user?.name || profile.name;
   const displayEmail = user?.email || profile.email;
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || profile.initials;
 

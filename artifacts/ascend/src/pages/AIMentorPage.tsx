@@ -12,7 +12,7 @@ import { GoalAnalysisPanel } from '@/components/ai/GoalAnalysisPanel';
 import { CoachSelector } from '@/components/ai/CoachSelector';
 
 import { useAIStore, type CoachRole, type Recommendation, type WeaknessReport, type GoalAnalysis, type UserContext } from '@/stores/ai.store';
-import { useAuthStore } from '@/stores/auth.store';
+import { useAuth } from '@/providers/AuthProvider';
 
 const BASE = '/api/ai';
 
@@ -47,7 +47,7 @@ export function AIMentorPage() {
     setGoalAnalyses,
   } = useAIStore();
 
-  const { user } = useAuthStore();
+  const { user } = useAuth();
   const userId = user?.id ?? 'mock-user-1';
 
   const [sidebarOpen, setSidebarOpen] = useState(true);

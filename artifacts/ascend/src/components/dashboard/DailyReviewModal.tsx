@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logDailyReview, fetchAcademicsData, fetchChessData, fetchGuitarData } from "@/lib/log-api";
-import { useAuthStore } from "@/stores/auth.store";
+import { useAuth } from "@/providers/AuthProvider";
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: "😔", label: "Rough" },
@@ -169,7 +169,8 @@ interface DailyReviewModalProps {
 }
 
 export function DailyReviewModal({ open, onClose }: DailyReviewModalProps) {
-  const userId = useAuthStore(s => s.user?.id) ?? "mock-user-1";
+  const { user } = useAuth();
+  const userId = user?.id ?? "mock-user-1";
 
   const [mood, setMood] = useState(4);
   const [energy, setEnergy] = useState(3);

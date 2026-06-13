@@ -1,62 +1,48 @@
-import { createContext, useContext, useEffect } from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { useAuthStore } from '../stores/auth.store';
-import { User, Session } from '@supabase/supabase-js';
-import { sampleData } from '../lib/sample-data';
+import { createContext, useContext } from 'react';
+import { useQuery } from '@tanstack/react-query';
+
+interface AuthUser {
+  id: string;
+  email?: string;
+  name?: string;
+  profileImageUrl?: string;
+}
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   loading: boolean;
-  signOut: () => Promise<void>;
-  isMock: boolean;
+  signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
   loading: true,
-  signOut: async () => {},
-  isMock: false
+  signOut: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
+async function fetchUser(): Promise<AuthUser | null> {
+  const res = await fetch('/api/auth/user', { credentials: 'include' });
+  if (res.status === 401) return null;
+  if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
+  return res.json();
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, session, loading, setUser, setSession, setLoading } = useAuthStore();
-  const isMock = !isSupabaseConfigured;
+  const { data: user, isLoading } = useQuery<AuthUser | null>({
+    queryKey: ['/api/auth/user'],
+    queryFn: fetchUser,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
 
-  useEffect(() => {
-    if (isMock) {
-      // Mock Auth State
-      setUser({ id: 'mock-user-1', email: sampleData.user.email, user_metadata: { name: sampleData.user.name } } as unknown as User);
-      setSession({ access_token: 'mock-token', user: { id: 'mock-user-1' } } as Session);
-      setLoading(false);
-      return;
-    }
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [isMock, setSession, setUser, setLoading]);
-
-  const signOut = async () => {
-    if (isMock) return;
-    await supabase.auth.signOut();
+  const signOut = () => {
+    window.location.href = '/api/logout';
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, isMock }}>
+    <AuthContext.Provider value={{ user: user ?? null, loading: isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );

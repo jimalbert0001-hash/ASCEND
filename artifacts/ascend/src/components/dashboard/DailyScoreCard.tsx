@@ -2,14 +2,15 @@ import { Card } from "@/components/ui/card";
 import { Trophy, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/stores/auth.store";
+import { useAuth } from "@/providers/AuthProvider";
 
 export function DailyScoreCard({ onReviewClick }: { onReviewClick?: () => void }) {
   const [score, setScore] = useState(0);
   const [displayScore, setDisplayScore] = useState(0);
   const [hasReview, setHasReview] = useState(false);
   const [loading, setLoading] = useState(true);
-  const userId = useAuthStore(s => s.user?.id) ?? "mock-user-1";
+  const { user } = useAuth();
+  const userId = user?.id ?? "mock-user-1";
 
   useEffect(() => {
     (async () => {

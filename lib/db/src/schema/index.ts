@@ -1,4 +1,5 @@
 export * from "./enums";
+export * from "./sessions";
 export * from "./users";
 export * from "./goals";
 export * from "./tasks";

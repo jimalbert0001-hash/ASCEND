@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { subjectsData, getSubjectStats, getTotalStats } from "@/lib/academics-data";
 import { logStudySession, fetchAcademicsData } from "@/lib/log-api";
-import { useAuthStore } from "@/stores/auth.store";
+import { useAuth } from "@/providers/AuthProvider";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
 const fadeUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -188,7 +188,8 @@ export function AcademicsOverview() {
   const [dbSessions, setDbSessions] = useState<DBSession[]>([]);
   const [dbTotalHours, setDbTotalHours] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const userId = useAuthStore(s => s.user?.id) ?? 'mock-user-1';
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
 
   const stats = getTotalStats();
   const boardScore500 = Math.round((stats.avgCompletion * 0.4 + stats.avgMockScore * 0.6) / 100 * 500);

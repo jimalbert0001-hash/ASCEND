@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getChessStats } from "@/lib/chess-data";
 import { logChessSession, fetchChessData } from "@/lib/log-api";
-import { useAuthStore } from "@/stores/auth.store";
+import { useAuth } from "@/providers/AuthProvider";
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
@@ -210,7 +210,8 @@ export function ChessOverview() {
   const [dbRatings, setDbRatings] = useState<{ rating: number; recordedAt: string }[]>([]);
   const [dbStats, setDbStats] = useState<DBStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const userId = useAuthStore(s => s.user?.id) ?? 'mock-user-1';
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
 
   const staticStats = getChessStats();
 

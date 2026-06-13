@@ -3,7 +3,6 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileNav } from "./MobileNav";
 import { useAuth } from "@/providers/AuthProvider";
-import { Redirect } from "wouter";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -20,7 +19,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (!user) {
-    return <Redirect to="/auth/login" />;
+    window.location.href = "/api/login";
+    return null;
   }
 
   return (
