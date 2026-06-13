@@ -41,10 +41,7 @@ if (process.env.NODE_ENV === "production") {
     import.meta.dirname,
     "..",
     "..",
-    "artifacts",
-    "ascend",
-    "dist",
-    "public"
+    "dist"
   );
   app.use(express.static(publicPath));
   app.get("*", (req, res) => {

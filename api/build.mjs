@@ -1,0 +1,113 @@
+import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { build as esbuild } from "esbuild";
+import esbuildPluginPino from "esbuild-plugin-pino";
+import { rm } from "node:fs/promises";
+
+const require = createRequire(import.meta.url);
+
+const apiDir = path.dirname(fileURLToPath(import.meta.url));
+
+async function build() {
+  const outfile = path.resolve(apiDir, "index.js");
+  await rm(outfile, { force: true });
+  await rm(path.resolve(apiDir, "index.js.map"), { force: true });
+
+  await esbuild({
+    entryPoints: [path.resolve(apiDir, "../artifacts/api-server/src/app.ts")],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    outfile,
+    logLevel: "info",
+    external: [
+      "*.node",
+      "sharp",
+      "better-sqlite3",
+      "sqlite3",
+      "canvas",
+      "bcrypt",
+      "argon2",
+      "fsevents",
+      "re2",
+      "farmhash",
+      "xxhash-addon",
+      "bufferutil",
+      "utf-8-validate",
+      "ssh2",
+      "cpu-features",
+      "dtrace-provider",
+      "isolated-vm",
+      "lightningcss",
+      "pg-native",
+      "oracledb",
+      "mongodb-client-encryption",
+      "nodemailer",
+      "handlebars",
+      "knex",
+      "typeorm",
+      "protobufjs",
+      "onnxruntime-node",
+      "@tensorflow/*",
+      "@prisma/client",
+      "@mikro-orm/*",
+      "@grpc/*",
+      "@swc/*",
+      "@aws-sdk/*",
+      "@azure/*",
+      "@opentelemetry/*",
+      "@google-cloud/*",
+      "@google/*",
+      "googleapis",
+      "firebase-admin",
+      "@parcel/watcher",
+      "@sentry/profiling-node",
+      "@tree-sitter/*",
+      "aws-sdk",
+      "classic-level",
+      "dd-trace",
+      "ffi-napi",
+      "grpc",
+      "hiredis",
+      "kerberos",
+      "leveldown",
+      "miniflare",
+      "mysql2",
+      "newrelic",
+      "odbc",
+      "piscina",
+      "realm",
+      "ref-napi",
+      "rocksdb",
+      "sass-embedded",
+      "sequelize",
+      "serialport",
+      "snappy",
+      "tinypool",
+      "usb",
+      "workerd",
+      "wrangler",
+      "zeromq",
+      "zeromq-prebuilt",
+      "playwright",
+      "puppeteer",
+      "puppeteer-core",
+      "electron",
+      "ws",
+    ],
+    sourcemap: "linked",
+    plugins: [
+      esbuildPluginPino({ transports: ["pino-pretty"] }),
+    ],
+    // Banner for CJS to ensure require works in bundled code
+    banner: {
+      js: `globalThis.require = require;`,
+    },
+  });
+}
+
+build().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
