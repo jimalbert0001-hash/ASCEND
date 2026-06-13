@@ -7,6 +7,7 @@ export * from "./habits";
 export * from "./academics";
 export * from "./startup";
 export * from "./chess";
+export * from "./chess_games";
 export * from "./guitar";
 export * from "./achievements";
 export * from "./reviews";

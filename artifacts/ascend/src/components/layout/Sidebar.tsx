@@ -25,6 +25,7 @@ const STARTUP_SUB_ITEMS = [
 
 const CHESS_SUB_ITEMS = [
   { name: "Training & Games", href: "/chess/training", icon: Clock },
+  { name: "Games", href: "/chess/games", icon: Swords },
   { name: "Openings", href: "/chess/openings", icon: OpeningBook },
   { name: "Tournaments", href: "/chess/tournaments", icon: Trophy },
   { name: "Analytics", href: "/chess/analytics", icon: BarChart2 },

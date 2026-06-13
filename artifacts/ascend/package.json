@@ -76,6 +76,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
+    "stockfish.js": "^10.0.2",
     "zustand": "^5.0.14"
   }
 }

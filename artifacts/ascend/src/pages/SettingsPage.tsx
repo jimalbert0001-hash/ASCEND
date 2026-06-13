@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUiStore } from "@/stores/ui.store";
 import { useAuth } from "@/providers/AuthProvider";
 import { useAIStore, type CoachRole } from "@/stores/ai.store";
@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fetchChessAccounts, saveChessAccounts } from "@/lib/chess-api";
 
 const COACH_META: Record<CoachRole, { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string; placeholder: string }> = {
   achievement: {
@@ -52,7 +54,7 @@ const ROLES: CoachRole[] = ['achievement', 'academic', 'startup', 'chess', 'guit
 
 export function SettingsPage() {
   const { theme, setTheme } = useUiStore();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const {
     personalityOverrides,
     setPersonalityOverride,
@@ -62,6 +64,39 @@ export function SettingsPage() {
   } = useAIStore();
 
   const [activeRole, setActiveRole] = useState<CoachRole>('achievement');
+
+  // Chess account settings
+  const [chesscomUsername, setChesscomUsername] = useState('princeplaysch');
+  const [lichessUsername, setLichessUsername] = useState('princeplaysch');
+  const [chessSaving, setChessSaving] = useState(false);
+  const [chessSaved, setChessSaved] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchChessAccounts(user.id).then(acc => {
+      setChesscomUsername(acc.chesscomUsername || 'princeplaysch');
+      setLichessUsername(acc.lichessUsername || 'princeplaysch');
+    }).catch(() => {
+      // defaults already set
+    });
+  }, [user?.id]);
+
+  async function handleSaveChessAccounts() {
+    if (!user?.id) return;
+    setChessSaving(true);
+    try {
+      await saveChessAccounts(user.id, {
+        chesscomUsername: chesscomUsername || 'princeplaysch',
+        lichessUsername: lichessUsername || 'princeplaysch',
+      });
+      setChessSaved(true);
+      setTimeout(() => setChessSaved(false), 2000);
+    } catch (e) {
+      console.error('Failed to save chess accounts', e);
+    } finally {
+      setChessSaving(false);
+    }
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-3xl mx-auto">
@@ -216,6 +251,45 @@ export function SettingsPage() {
               );
             })}
           </div>
+        </Card>
+
+        {/* Chess Accounts */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Swords className="w-4 h-4 text-amber-400" />
+            <h3 className="text-lg font-bold">Chess Accounts</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Connect your Chess.com and Lichess accounts to auto-import games and stats.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label className="text-xs mb-1.5 block">Chess.com Username</Label>
+              <Input
+                value={chesscomUsername}
+                onChange={(e) => setChesscomUsername(e.target.value)}
+                placeholder="princeplaysch"
+                className="bg-background/50"
+              />
+            </div>
+            <div>
+              <Label className="text-xs mb-1.5 block">Lichess Username</Label>
+              <Input
+                value={lichessUsername}
+                onChange={(e) => setLichessUsername(e.target.value)}
+                placeholder="princeplaysch"
+                className="bg-background/50"
+              />
+            </div>
+          </div>
+          <Button
+            onClick={handleSaveChessAccounts}
+            disabled={chessSaving}
+            className="gap-2"
+            size="sm"
+          >
+            {chessSaved ? <CheckCircle2 className="w-4 h-4" /> : chessSaving ? 'Saving...' : 'Save Accounts'}
+          </Button>
         </Card>
 
         {/* Notifications */}

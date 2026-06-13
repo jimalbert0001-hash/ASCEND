@@ -28,6 +28,7 @@ import { MetricsPage } from "@/pages/startup/MetricsPage";
 
 import { ChessOverview } from "@/pages/chess/ChessOverview";
 import { TrainingPage } from "@/pages/chess/TrainingPage";
+import { ChessGamesPage } from "@/pages/chess/ChessGamesPage";
 import { OpeningsPage } from "@/pages/chess/OpeningsPage";
 import { TournamentsPage } from "@/pages/chess/TournamentsPage";
 import { ChessAnalytics } from "@/pages/chess/ChessAnalytics";
@@ -90,6 +91,9 @@ function Router() {
       </Route>
       <Route path="/chess/training">
         <AppShell><TrainingPage /></AppShell>
+      </Route>
+      <Route path="/chess/games">
+        <AppShell><ChessGamesPage /></AppShell>
       </Route>
       <Route path="/chess/openings">
         <AppShell><OpeningsPage /></AppShell>
