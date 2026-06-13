@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   bio TEXT,
   timezone TEXT NOT NULL DEFAULT 'Asia/Kolkata',
   onboarding_complete BOOLEAN NOT NULL DEFAULT FALSE,
-  active_domains domain_type[] NOT NULL DEFAULT ARRAY['academics', 'startup', 'chess', 'guitar', 'life'],
+  active_domains domain_type[] NOT NULL DEFAULT ARRAY['academics', 'startup', 'chess', 'guitar', 'life']::domain_type[],
   theme TEXT NOT NULL DEFAULT 'dark',
   daily_review_time TIME,
   weekly_review_day SMALLINT DEFAULT 0,
