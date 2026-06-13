@@ -79,7 +79,7 @@ export function getProviderStatus(): {
     openai: 'gpt-4o-mini',
     anthropic: 'claude-3-5-haiku-20241022',
     gemini: 'gemini-1.5-flash',
-    openrouter: 'meta-llama/llama-3.1-8b-instruct:free',
+    openrouter: 'meta-llama/llama-3.1-8b-instruct',
   };
 
   const foundKey = findKey(keyMap[name]);

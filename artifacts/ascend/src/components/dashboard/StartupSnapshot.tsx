@@ -2,14 +2,14 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Rocket, Users, DollarSign, TrendingUp, ChevronRight, ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { getOverallStats, getProjectStats, projectsData } from "@/lib/startup-data";
+import { useStatsStore } from "@/stores/stats.store";
+import { EditableField } from "@/components/ui/EditableField";
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
 export function StartupSnapshot() {
-  const overall = getOverallStats();
-  const mainProject = projectsData.find(p => p.status === 'active');
-  const stats = mainProject ? getProjectStats(mainProject.id) : null;
+  const { startupStats, updateStartupStat } = useStatsStore();
+  const stats = startupStats;
 
   return (
     <motion.div variants={fadeUp} initial="initial" animate="animate">
@@ -21,7 +21,7 @@ export function StartupSnapshot() {
             </div>
             <div>
               <h3 className="font-semibold text-sm">Startup</h3>
-              <p className="text-xs text-muted-foreground">{overall.activeProjects} active project{overall.activeProjects !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-muted-foreground"><EditableField value={stats.activeProjects} onSave={(v) => updateStartupStat('activeProjects', Number(v))} min={0} className="text-xs text-muted-foreground" /> active project{stats.activeProjects !== 1 ? 's' : ''}</p>
             </div>
           </div>
           <Link href="/startup" className="text-xs text-primary hover:underline flex items-center gap-0.5">
@@ -35,49 +35,43 @@ export function StartupSnapshot() {
               <Users className="w-3 h-3" />
               <span className="text-[10px]">Users</span>
             </div>
-            <p className="font-bold text-sm">{overall.totalUsers.toLocaleString()}</p>
-            {stats && (
-              <p className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                <ArrowUpRight className="w-2.5 h-2.5" />+{stats.userGrowth}%
-              </p>
-            )}
+            <p className="font-bold text-sm"><EditableField value={stats.totalUsers} onSave={(v) => updateStartupStat('totalUsers', Number(v))} min={0} className="font-bold text-sm" /></p>
+            <p className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
+              <ArrowUpRight className="w-2.5 h-2.5" />+<EditableField value={stats.userGrowth} onSave={(v) => updateStartupStat('userGrowth', Number(v))} className="text-[10px] text-emerald-400" suffix="%" compact />
+            </p>
           </div>
           <div className="bg-muted/20 rounded-lg p-2.5">
             <div className="flex items-center gap-1 text-muted-foreground mb-1">
               <DollarSign className="w-3 h-3" />
               <span className="text-[10px]">MRR</span>
             </div>
-            <p className="font-bold text-sm">${overall.totalMrr.toLocaleString()}</p>
-            {stats && (
-              <p className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
-                <ArrowUpRight className="w-2.5 h-2.5" />+{stats.mrrGrowth}%
-              </p>
-            )}
+            <p className="font-bold text-sm">$<EditableField value={stats.totalMrr} onSave={(v) => updateStartupStat('totalMrr', Number(v))} min={0} className="font-bold text-sm" /></p>
+            <p className="text-[10px] text-emerald-400 flex items-center gap-0.5 mt-0.5">
+              <ArrowUpRight className="w-2.5 h-2.5" />+<EditableField value={stats.mrrGrowth} onSave={(v) => updateStartupStat('mrrGrowth', Number(v))} className="text-[10px] text-emerald-400" suffix="%" compact />
+            </p>
           </div>
           <div className="bg-muted/20 rounded-lg p-2.5">
             <div className="flex items-center gap-1 text-muted-foreground mb-1">
               <TrendingUp className="w-3 h-3" />
               <span className="text-[10px]">Growth</span>
             </div>
-            <p className="font-bold text-sm">{stats?.userGrowth ?? 0}%</p>
+            <p className="font-bold text-sm"><EditableField value={stats.userGrowth} onSave={(v) => updateStartupStat('userGrowth', Number(v))} className="font-bold text-sm" suffix="%" /></p>
             <p className="text-[10px] text-muted-foreground mt-0.5">MoM</p>
           </div>
         </div>
 
-        {mainProject && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-medium">{mainProject.name}</span>
-              <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase font-bold">
-                {mainProject.stage}
-              </span>
-            </div>
-            <div className="flex gap-2 text-[10px] text-muted-foreground">
-              <span className="text-amber-400">{overall.openBugs} bugs open</span>
-            </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-medium">Ascend</span>
+            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded uppercase font-bold">
+              mvp
+            </span>
           </div>
-        )}
+          <div className="flex gap-2 text-[10px] text-muted-foreground">
+            <span className="text-amber-400"><EditableField value={stats.openBugs} onSave={(v) => updateStartupStat('openBugs', Number(v))} min={0} className="text-[10px] text-amber-400" suffix=" bugs open" compact /></span>
+          </div>
+        </div>
       </Card>
     </motion.div>
   );

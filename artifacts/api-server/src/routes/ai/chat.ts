@@ -61,8 +61,9 @@ router.post('/chat', async (req, res) => {
       res.write('data: [DONE]\n\n');
       res.end();
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       logger.error(err, 'AI stream error');
-      res.write(`data: ${JSON.stringify({ error: 'Stream failed' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
       res.end();
     }
     return;

@@ -48,6 +48,22 @@ export interface GoalAnalysis {
   riskLevel: 'on-track' | 'at-risk' | 'off-track';
 }
 
+export interface UserContext {
+  user: {
+    name: string;
+    stats: { studyHours: number; chessRating: number; habitStreak: number };
+    activeDomains: string[];
+  };
+  goals: Array<{ id: string; title: string; domain: string; progress: number; status: string }>;
+  tasks: Array<{ id: string; title: string; domain: string; due?: string; priority: string; completed: boolean }>;
+  achievements?: Array<{ title: string; description: string; earned: boolean; type: string }>;
+  studyData?: { totalHours: number; subjectBreakdown?: Array<{ name: string; hours: number }>; recentTests?: Array<{ name: string; score: number; date: string }>; weakChapters?: string[] };
+  startupData?: { projects?: Array<{ name: string; stage: string; mrr?: number; users?: number }>; topMetrics?: Array<{ name: string; value: number; unit: string }>; pendingFeatures?: number };
+  chessData?: { currentRating: number; ratingGoal: number; winRate: number; tacticsAccuracy?: number; recentSessions?: Array<{ type: string; date: string; result?: string }> };
+  guitarData?: { totalPracticeHours: number; songsLearning: number; songsMastered: number; recentFocusAreas?: string[]; currentBpm?: number };
+  reviews?: { lastDailyScore?: number; weeklyAvgScore?: number; streak?: number; recentMood?: string };
+}
+
 interface AIState {
   conversations: Conversation[];
   activeConversationId: string | null;
