@@ -40,14 +40,16 @@ export interface ChessStatsData {
   ratingTimeline: { date: string; rating: number; platform: string }[];
 }
 
+import { apiFetch } from './api-fetch';
+
 export async function fetchChessAccounts(userId: string): Promise<ChessAccountData> {
-  const res = await fetch(`/api/chess/accounts/${userId}`);
+  const res = await apiFetch(`/api/chess/accounts/${userId}`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
 export async function saveChessAccounts(userId: string, data: Partial<ChessAccountData>): Promise<void> {
-  const res = await fetch(`/api/chess/accounts/${userId}`, {
+  const res = await apiFetch(`/api/chess/accounts/${userId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -57,13 +59,13 @@ export async function saveChessAccounts(userId: string, data: Partial<ChessAccou
 
 export async function fetchChessGames(userId: string, platform?: string): Promise<ChessGameData[]> {
   const qs = platform ? `?platform=${platform}` : '';
-  const res = await fetch(`/api/chess/games/${userId}${qs}`);
+  const res = await apiFetch(`/api/chess/games/${userId}${qs}`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
 
 export async function saveChessGames(userId: string, games: Partial<ChessGameData>[]): Promise<void> {
-  const res = await fetch(`/api/chess/games/${userId}`, {
+  const res = await apiFetch(`/api/chess/games/${userId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ games }),
@@ -77,7 +79,7 @@ export async function saveGameAnalysis(userId: string, gameId: string, analysis:
   worstMove: string;
   analysisNotes: string;
 }): Promise<void> {
-  const res = await fetch(`/api/chess/games/${userId}/${gameId}/analysis`, {
+  const res = await apiFetch(`/api/chess/games/${userId}/${gameId}/analysis`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(analysis),
@@ -86,7 +88,7 @@ export async function saveGameAnalysis(userId: string, gameId: string, analysis:
 }
 
 export async function fetchChessStats(userId: string): Promise<ChessStatsData> {
-  const res = await fetch(`/api/chess/stats/${userId}`);
+  const res = await apiFetch(`/api/chess/stats/${userId}`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

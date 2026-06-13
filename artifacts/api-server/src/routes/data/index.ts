@@ -12,7 +12,7 @@ import { logger } from '../../lib/logger.js';
 async function ensureUserExists(userId: string): Promise<void> {
   await db.insert(users).values({
     id: userId,
-    email: `${userId}@replit.user`,
+    email: `${userId}@ascend.local`,
   }).onConflictDoNothing();
 }
 

@@ -4,7 +4,7 @@ import pinoHttp from "pino-http";
 import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { setupAuth } from "./lib/replitAuth";
+import { setupAuth } from "./lib/supabaseAuth.js";
 
 const app: Express = express();
 

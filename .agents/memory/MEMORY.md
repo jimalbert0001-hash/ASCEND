@@ -2,3 +2,4 @@
 - [DB context architecture](db-context-architecture.md) — AI Mentor reads DB server-side via Drizzle; frontend only passes userId, never builds context itself.
 - [Seed script location](seed-location.md) — Seed lives at lib/db/src/seed.ts; run via: node /path/to/pnpm-store/tsx/dist/cli.mjs src/seed.ts from lib/db directory.
 - [Dev mock user pattern](dev-mock-user.md) — AuthProvider and AppShell fall back to `mock-user-1` in `import.meta.env.DEV` so the app works without Replit login in development.
+- [Supabase Auth migration](supabase-auth.md) — Replit OIDC replaced with Supabase Auth. See topic file for env var semantics, JWT flow, and WebSocket fix for Node.js 20.

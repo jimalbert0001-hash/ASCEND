@@ -1,8 +1,10 @@
+import { apiFetch } from './api-fetch';
+
 const LOG_BASE = '/api/log';
 const DATA_BASE = '/api/data';
 
 async function post(path: string, body: unknown) {
-  const res = await fetch(`${LOG_BASE}${path}`, {
+  const res = await apiFetch(`${LOG_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -13,7 +15,7 @@ async function post(path: string, body: unknown) {
 
 async function get(path: string, params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${DATA_BASE}${path}?${qs}`);
+  const res = await apiFetch(`${DATA_BASE}${path}?${qs}`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

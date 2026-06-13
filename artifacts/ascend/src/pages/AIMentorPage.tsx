@@ -13,12 +13,13 @@ import { CoachSelector } from '@/components/ai/CoachSelector';
 
 import { useAIStore, type CoachRole, type Recommendation, type WeaknessReport, type GoalAnalysis, type UserContext } from '@/stores/ai.store';
 import { useAuth } from '@/providers/AuthProvider';
+import { apiFetch } from '@/lib/api-fetch';
 
 const BASE = '/api/ai';
 
 async function fetchContext(userId: string): Promise<UserContext | null> {
   try {
-    const res = await fetch(`${BASE}/context?userId=${encodeURIComponent(userId)}`);
+    const res = await apiFetch(`${BASE}/context?userId=${encodeURIComponent(userId)}`);
     if (!res.ok) return null;
     return res.json() as Promise<UserContext>;
   } catch {

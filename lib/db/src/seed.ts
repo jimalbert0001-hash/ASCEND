@@ -4,7 +4,7 @@ import * as schema from "./schema/index.js";
 
 const { Pool } = pg;
 
-const pool = new Pool({ connectionString: process.env.SUPABASE_DB_URL || process.env.DATABASE_URL });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
 
 const MOCK_USER_ID = "mock-user-1";

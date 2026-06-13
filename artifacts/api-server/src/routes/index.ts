@@ -4,13 +4,14 @@ import aiRouter from "./ai/index.js";
 import logRouter from "./log/index.js";
 import dataRouter from "./data/index.js";
 import chessRouter from "./chess/index.js";
+import { optionalAuth } from "../lib/supabaseAuth.js";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/ai", aiRouter);
-router.use("/log", logRouter);
-router.use("/data", dataRouter);
-router.use("/chess", chessRouter);
+router.use(optionalAuth, logRouter);
+router.use(optionalAuth, dataRouter);
+router.use(optionalAuth, chessRouter);
 
 export default router;

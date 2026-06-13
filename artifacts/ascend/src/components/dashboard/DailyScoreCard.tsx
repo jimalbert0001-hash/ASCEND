@@ -3,6 +3,7 @@ import { Trophy, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/AuthProvider";
+import { apiFetch } from "@/lib/api-fetch";
 
 export function DailyScoreCard({ onReviewClick }: { onReviewClick?: () => void }) {
   const [score, setScore] = useState(0);
@@ -15,7 +16,7 @@ export function DailyScoreCard({ onReviewClick }: { onReviewClick?: () => void }
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/ai/context?userId=${userId}`);
+        const res = await apiFetch(`/api/ai/context?userId=${userId}`);
         if (res.ok) {
           const ctx = await res.json();
           const lastScore = ctx?.reviews?.lastDailyScore ?? 0;

@@ -23,12 +23,12 @@ export interface GoalUpdate {
   status?: string;
 }
 
+import { apiFetch } from './api-fetch';
+
 const API_BASE = '/api/data';
 
 export async function fetchGoals(userId: string): Promise<GoalDto[]> {
-  const res = await fetch(`${API_BASE}/goals?userId=${encodeURIComponent(userId)}`, {
-    credentials: 'include',
-  });
+  const res = await apiFetch(`${API_BASE}/goals?userId=${encodeURIComponent(userId)}`);
   if (!res.ok) throw new Error(`Failed to fetch goals: ${res.status}`);
   const raw = await res.json() as Array<Record<string, unknown>>;
   return raw.map((g) => ({
@@ -46,10 +46,9 @@ export async function fetchGoals(userId: string): Promise<GoalDto[]> {
 }
 
 export async function saveGoals(userId: string, goals: GoalUpdate[]): Promise<GoalDto[]> {
-  const res = await fetch(`${API_BASE}/goals`, {
+  const res = await apiFetch(`${API_BASE}/goals`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ userId, goals }),
   });
   if (!res.ok) throw new Error(`Failed to save goals: ${res.status}`);

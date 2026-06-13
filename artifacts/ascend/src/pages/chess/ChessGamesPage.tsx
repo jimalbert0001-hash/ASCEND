@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/AuthProvider";
+import { apiFetch } from "@/lib/api-fetch";
 import {
   fetchChessComAllGames, fetchLichessGames, fetchChessGames, saveChessGames,
   ChessComGame, LichessGame, ChessGameData, ChessGameDataPlatform
@@ -179,7 +180,7 @@ export function ChessGamesPage() {
       const data = await fetchChessGames(userId);
       setGames(data);
       // Also fetch accounts
-      const accRes = await fetch(`/api/chess/accounts/${userId}`);
+      const accRes = await apiFetch(`/api/chess/accounts/${userId}`);
       if (accRes.ok) setAccounts(await accRes.json());
     } catch (err) {
       console.error(err);

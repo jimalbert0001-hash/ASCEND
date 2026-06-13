@@ -7,7 +7,7 @@ import { useAuth } from "@/providers/AuthProvider";
 const MOCK_DEV_USER = { id: 'mock-user-1', email: 'alex@example.com', name: 'Alex Mercer' };
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
 
   const isDev = import.meta.env.DEV;
   const effectiveUser = user ?? (isDev ? MOCK_DEV_USER : null);
@@ -32,10 +32,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <h1 className="text-2xl font-bold tracking-tight">ASCEND</h1>
         <p className="text-muted-foreground text-sm">Sign in to access your dashboard</p>
         <a
-          href="/api/login"
+          href="/auth/login"
           className="inline-flex items-center justify-center px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
         >
-          Sign in with Replit
+          Sign in
         </a>
       </div>
     );

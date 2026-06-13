@@ -1,9 +1,10 @@
 import type { CoachRole, UserContext, Recommendation, WeaknessReport, GoalAnalysis } from '@/stores/ai.store';
+import { apiFetch } from './api-fetch';
 
 const BASE = '/api/ai';
 
-async function apiFetch(path: string, body: unknown): Promise<Response> {
-  return fetch(`${BASE}${path}`, {
+async function postApi(path: string, body: unknown): Promise<Response> {
+  return apiFetch(`${BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -20,7 +21,7 @@ export async function checkProviderStatus(): Promise<{
   configured: boolean;
   envVar: string;
 }> {
-  const res = await fetch(`${BASE}/status`);
+  const res = await apiFetch(`${BASE}/status`);
   if (!res.ok) throw new Error('Failed to check AI status');
   return res.json();
 }
@@ -31,7 +32,7 @@ export async function sendChatMessage(
   userId: string,
   personalityOverride?: string
 ): Promise<{ content: string; usage?: { promptTokens: number; completionTokens: number; totalTokens: number } }> {
-  const res = await apiFetch('/chat', { messages, role, userId, stream: false, personalityOverride });
+  const res = await postApi('/chat', { messages, role, userId, stream: false, personalityOverride });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -51,7 +52,7 @@ export async function sendChatMessageStream(
   personalityOverride?: string,
   onUsage?: (usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => void
 ): Promise<void> {
-  const res = await apiFetch('/chat', { messages, role, userId, stream: true, personalityOverride });
+  const res = await postApi('/chat', { messages, role, userId, stream: true, personalityOverride });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -91,7 +92,7 @@ export async function getDailyRecommendations(userId: string): Promise<{
   recommendations: Recommendation[];
   morningBriefing: string;
 }> {
-  const res = await apiFetch('/recommendations/daily', { userId });
+  const res = await postApi('/recommendations/daily', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -103,7 +104,7 @@ export async function getWeeklyRecommendations(userId: string): Promise<{
   recommendations: Recommendation[];
   weeklyDigest: string;
 }> {
-  const res = await apiFetch('/recommendations/weekly', { userId });
+  const res = await postApi('/recommendations/weekly', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -114,7 +115,7 @@ export async function getWeeklyRecommendations(userId: string): Promise<{
 export async function detectWeaknesses(userId: string): Promise<{
   weaknesses: WeaknessReport[];
 }> {
-  const res = await apiFetch('/recommendations/weaknesses', { userId });
+  const res = await postApi('/recommendations/weaknesses', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -125,7 +126,7 @@ export async function detectWeaknesses(userId: string): Promise<{
 export async function analyzeGoals(userId: string): Promise<{
   analyses: GoalAnalysis[];
 }> {
-  const res = await apiFetch('/analyze/goals', { userId });
+  const res = await postApi('/analyze/goals', { userId });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
