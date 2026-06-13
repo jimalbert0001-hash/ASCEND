@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, TrendingUp, TrendingDown, Target, Trophy, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,8 @@ import {
   BarChart, Bar, Cell,
 } from "recharts";
 import { subjectsData, mockTestsData, MockTest } from "@/lib/academics-data";
-import { createMockTest, deleteMockTest } from "@/lib/academics-supabase";
+import { createMockTest, deleteMockTest, getMockTests } from "@/lib/academics-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 
 const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
@@ -45,10 +46,12 @@ function TestModal({ open, onClose, onSaved }: { open: boolean; onClose: () => v
   const [weakTopics, setWeakTopics] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
 
   async function save() {
     setSaving(true);
-    const test = await createMockTest({
+    const test = await createMockTest(userId, {
       subjectId: subjectId === '__none__' ? null : subjectId,
       name: name || `Mock Test ${new Date().toLocaleDateString()}`,
       date: new Date().toISOString().split('T')[0],
@@ -117,6 +120,12 @@ function TestModal({ open, onClose, onSaved }: { open: boolean; onClose: () => v
 export function MockTestsPage() {
   const [tests, setTests] = useState<MockTest[]>(mockTestsData);
   const [modal, setModal] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getMockTests(userId).then(data => setTests(data));
+  }, [userId]);
 
   const subjectTests = subjectsData.map(s => ({
     subject: s,

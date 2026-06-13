@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Plus, Trash2, Save, ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Tournament, TournamentFormat, tournamentsData as initTournaments } from "@/lib/chess-data";
-import { createTournament, deleteTournament } from "@/lib/chess-supabase";
+import { createTournament, deleteTournament, getTournaments } from "@/lib/chess-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const defaultForm = { name: '', date: new Date().toISOString().slice(0, 10), format: 'rapid' as TournamentFormat, result: '', score: '', rounds: 5, ratingBefore: 1450, ratingAfter: 1450, location: '', notes: '' };
@@ -20,9 +21,15 @@ export function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>(initTournaments);
   const [dlgOpen, setDlgOpen] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getTournaments(userId).then(data => setTournaments(data));
+  }, [userId]);
 
   async function saveTournament() {
-    const t = await createTournament({ ...form, rounds: Number(form.rounds), ratingBefore: Number(form.ratingBefore), ratingAfter: Number(form.ratingAfter) });
+    const t = await createTournament(userId, { ...form, rounds: Number(form.rounds), ratingBefore: Number(form.ratingBefore), ratingAfter: Number(form.ratingAfter) });
     setTournaments(prev => [t, ...prev.sort((a, b) => b.date.localeCompare(a.date))]);
     setDlgOpen(false);
     setForm(defaultForm);

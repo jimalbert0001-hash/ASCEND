@@ -26,12 +26,12 @@ export async function updateUnderstandingLevel(chapterId: string, level: number)
   } catch { }
 }
 
-export async function createStudySession(session: Omit<StudySession, 'id'>): Promise<StudySession> {
+export async function createStudySession(userId: string, session: Omit<StudySession, 'id'>): Promise<StudySession> {
   const newSession: StudySession = { ...session, id: crypto.randomUUID() };
   if (isMock) return newSession;
   try {
     const { data, error } = await supabase.from('study_sessions').insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+      user_id: userId,
       subject_id: session.subjectId,
       chapter_id: session.chapterId,
       started_at: new Date(new Date().getTime() - session.durationMins * 60000).toISOString(),
@@ -55,12 +55,12 @@ export async function getStudySessions(userId: string, limit = 20): Promise<Stud
   } catch { return studySessionsData.slice(0, limit); }
 }
 
-export async function createMockTest(test: Omit<MockTest, 'id'>): Promise<MockTest> {
+export async function createMockTest(userId: string, test: Omit<MockTest, 'id'>): Promise<MockTest> {
   const newTest: MockTest = { ...test, id: crypto.randomUUID() };
   if (isMock) return newTest;
   try {
     const { data, error } = await supabase.from('mock_tests').insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
+      user_id: userId,
       subject_id: test.subjectId,
       name: test.name,
       test_date: test.date,

@@ -8,20 +8,20 @@ const isMock = !isSupabaseConfigured;
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
-export async function getProjects(): Promise<StartupProject[]> {
+export async function getProjects(userId: string): Promise<StartupProject[]> {
   if (isMock) return projectsData;
   try {
-    const { data, error } = await supabase.from('startup_projects').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('startup_projects').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     if (error) throw error;
     return (data as StartupProject[]) ?? projectsData;
   } catch { return projectsData; }
 }
 
-export async function createProject(p: Omit<StartupProject, 'id'>): Promise<StartupProject> {
+export async function createProject(userId: string, p: Omit<StartupProject, 'id'>): Promise<StartupProject> {
   const newP: StartupProject = { ...p, id: crypto.randomUUID() };
   if (isMock) return newP;
   try {
-    const { data, error } = await supabase.from('startup_projects').insert({ ...p, user_id: (await supabase.auth.getUser()).data.user?.id }).select().single();
+    const { data, error } = await supabase.from('startup_projects').insert({ ...p, user_id: userId }).select().single();
     if (error) throw error;
     return data as StartupProject;
   } catch { return newP; }
@@ -39,20 +39,20 @@ export async function deleteProject(id: string): Promise<void> {
 
 // ─── Ideas ────────────────────────────────────────────────────────────────────
 
-export async function getIdeas(): Promise<IdeaVaultItem[]> {
+export async function getIdeas(userId: string): Promise<IdeaVaultItem[]> {
   if (isMock) return ideasData;
   try {
-    const { data, error } = await supabase.from('startup_ideas').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('startup_ideas').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     if (error) throw error;
     return (data as IdeaVaultItem[]) ?? ideasData;
   } catch { return ideasData; }
 }
 
-export async function createIdea(idea: Omit<IdeaVaultItem, 'id'>): Promise<IdeaVaultItem> {
+export async function createIdea(userId: string, idea: Omit<IdeaVaultItem, 'id'>): Promise<IdeaVaultItem> {
   const newIdea: IdeaVaultItem = { ...idea, id: crypto.randomUUID() };
   if (isMock) return newIdea;
   try {
-    const { data, error } = await supabase.from('startup_ideas').insert({ ...idea, user_id: (await supabase.auth.getUser()).data.user?.id }).select().single();
+    const { data, error } = await supabase.from('startup_ideas').insert({ ...idea, user_id: userId }).select().single();
     if (error) throw error;
     return data as IdeaVaultItem;
   } catch { return newIdea; }
@@ -79,11 +79,11 @@ export async function getRoadmapItems(projectId: string): Promise<RoadmapItem[]>
   } catch { return roadmapData.filter(r => r.projectId === projectId); }
 }
 
-export async function createRoadmapItem(item: Omit<RoadmapItem, 'id'>): Promise<RoadmapItem> {
+export async function createRoadmapItem(userId: string, item: Omit<RoadmapItem, 'id'>): Promise<RoadmapItem> {
   const newItem: RoadmapItem = { ...item, id: crypto.randomUUID() };
   if (isMock) return newItem;
   try {
-    const { data, error } = await supabase.from('startup_roadmap').insert(item).select().single();
+    const { data, error } = await supabase.from('startup_roadmap').insert({ ...item, user_id: userId }).select().single();
     if (error) throw error;
     return data as RoadmapItem;
   } catch { return newItem; }
@@ -110,11 +110,11 @@ export async function getFeatures(projectId: string): Promise<Feature[]> {
   } catch { return featuresData.filter(f => f.projectId === projectId); }
 }
 
-export async function createFeature(feat: Omit<Feature, 'id'>): Promise<Feature> {
+export async function createFeature(userId: string, feat: Omit<Feature, 'id'>): Promise<Feature> {
   const newFeat: Feature = { ...feat, id: crypto.randomUUID() };
   if (isMock) return newFeat;
   try {
-    const { data, error } = await supabase.from('startup_features').insert(feat).select().single();
+    const { data, error } = await supabase.from('startup_features').insert({ ...feat, user_id: userId }).select().single();
     if (error) throw error;
     return data as Feature;
   } catch { return newFeat; }
@@ -141,11 +141,11 @@ export async function getBugs(projectId: string): Promise<BugReport[]> {
   } catch { return bugsData.filter(b => b.projectId === projectId); }
 }
 
-export async function createBug(bug: Omit<BugReport, 'id'>): Promise<BugReport> {
+export async function createBug(userId: string, bug: Omit<BugReport, 'id'>): Promise<BugReport> {
   const newBug: BugReport = { ...bug, id: crypto.randomUUID() };
   if (isMock) return newBug;
   try {
-    const { data, error } = await supabase.from('startup_bugs').insert(bug).select().single();
+    const { data, error } = await supabase.from('startup_bugs').insert({ ...bug, user_id: userId }).select().single();
     if (error) throw error;
     return data as BugReport;
   } catch { return newBug; }
@@ -172,11 +172,11 @@ export async function getMilestones(projectId: string): Promise<LaunchMilestone[
   } catch { return milestonesData.filter(m => m.projectId === projectId); }
 }
 
-export async function createMilestone(m: Omit<LaunchMilestone, 'id'>): Promise<LaunchMilestone> {
+export async function createMilestone(userId: string, m: Omit<LaunchMilestone, 'id'>): Promise<LaunchMilestone> {
   const newM: LaunchMilestone = { ...m, id: crypto.randomUUID() };
   if (isMock) return newM;
   try {
-    const { data, error } = await supabase.from('startup_milestones').insert(m).select().single();
+    const { data, error } = await supabase.from('startup_milestones').insert({ ...m, user_id: userId }).select().single();
     if (error) throw error;
     return data as LaunchMilestone;
   } catch { return newM; }

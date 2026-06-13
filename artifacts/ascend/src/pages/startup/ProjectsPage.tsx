@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Rocket, Lightbulb, Plus, Pencil, Trash2, Star, ChevronDown, ExternalLink, Users, DollarSign } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,8 @@ import {
   StartupProject, IdeaVaultItem, ProjectStage, ProjectStatus, IdeaStatus,
   STAGE_LABELS, STAGE_COLOR,
 } from "@/lib/startup-data";
-import { createProject, updateProject, deleteProject, createIdea, updateIdea, deleteIdea } from "@/lib/startup-supabase";
+import { createProject, updateProject, deleteProject, createIdea, updateIdea, deleteIdea, getProjects, getIdeas } from "@/lib/startup-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -54,6 +55,9 @@ function ProjectModal({ open, onClose, onSaved, initial }: {
   const [teamSize, setTeamSize] = useState(String(initial?.teamSize ?? '1'));
   const [saving, setSaving] = useState(false);
 
+  const { user: modalUser } = useAuth();
+  const modalUserId = modalUser?.id ?? 'mock-user-1';
+
   async function handleSave() {
     if (!name.trim()) return;
     setSaving(true);
@@ -70,7 +74,7 @@ function ProjectModal({ open, onClose, onSaved, initial }: {
       await updateProject(initial.id, payload);
       result = { ...initial, ...payload };
     } else {
-      result = await createProject(payload);
+      result = await createProject(modalUserId, payload);
     }
     setSaving(false);
     onSaved(result);
@@ -149,6 +153,9 @@ function IdeaModal({ open, onClose, onSaved, initial }: {
   const [tags, setTags] = useState(initial?.tags?.join(', ') ?? '');
   const [saving, setSaving] = useState(false);
 
+  const { user: ideaUser } = useAuth();
+  const ideaUserId = ideaUser?.id ?? 'mock-user-1';
+
   async function handleSave() {
     if (!title.trim()) return;
     setSaving(true);
@@ -164,7 +171,7 @@ function IdeaModal({ open, onClose, onSaved, initial }: {
       await updateIdea(initial.id, payload);
       result = { ...initial, ...payload };
     } else {
-      result = await createIdea(payload);
+      result = await createIdea(ideaUserId, payload);
     }
     setSaving(false);
     onSaved(result);
@@ -241,6 +248,13 @@ export function ProjectsPage() {
   const [ideas, setIdeas] = useState<IdeaVaultItem[]>(ideasData);
   const [projectModal, setProjectModal] = useState(false);
   const [editProject, setEditProject] = useState<StartupProject | undefined>();
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getProjects(userId).then(data => setProjects(data));
+    getIdeas(userId).then(data => setIdeas(data));
+  }, [userId]);
   const [ideaModal, setIdeaModal] = useState(false);
   const [editIdea, setEditIdea] = useState<IdeaVaultItem | undefined>();
   const [ideaFilter, setIdeaFilter] = useState<IdeaStatus | '__all__'>('__all__');

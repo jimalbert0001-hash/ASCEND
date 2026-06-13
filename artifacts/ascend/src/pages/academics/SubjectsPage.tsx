@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearch } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, CheckCircle2, Circle, Star, Plus, BookOpen, Clock, FlaskConical, Calculator, Book, Terminal, Atom } from "lucide-react";
@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { subjectsData, Chapter, Formula, getSubjectStats } from "@/lib/academics-data";
-import { createStudySession } from "@/lib/academics-supabase";
+import { createStudySession, getSubjects } from "@/lib/academics-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, any> = { Atom, FlaskConical, Calculator, Book, Terminal, BookOpen };
@@ -121,10 +122,12 @@ function LogSessionModal({ open, onClose, subjectId }: { open: boolean; onClose:
   const [focus, setFocus] = useState('4');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
 
   async function save() {
     setSaving(true);
-    await createStudySession({ subjectId, chapterId: chapterId || null, date: new Date().toISOString().split('T')[0], durationMins: parseInt(duration), sessionType: type, focusScore: parseInt(focus) as 1|2|3|4|5, notes });
+    await createStudySession(userId, { subjectId, chapterId: chapterId || null, date: new Date().toISOString().split('T')[0], durationMins: parseInt(duration), sessionType: type, focusScore: parseInt(focus) as 1|2|3|4|5, notes });
     setSaving(false);
     onClose();
   }
@@ -187,8 +190,15 @@ export function SubjectsPage() {
   const initialSubject = params.get('subject') ?? subjectsData[0].id;
   const [activeId, setActiveId] = useState(initialSubject);
   const [logModal, setLogModal] = useState(false);
+  const [subjects, setSubjects] = useState(subjectsData);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
 
-  const subject = subjectsData.find(s => s.id === activeId) ?? subjectsData[0];
+  useEffect(() => {
+    getSubjects(userId).then(data => setSubjects(data));
+  }, [userId]);
+
+  const subject = subjects.find(s => s.id === activeId) ?? subjects[0] ?? subjectsData[0];
   const stats = getSubjectStats(subject);
   const SubjectIcon = ICONS[subject.icon] ?? BookOpen;
 
@@ -206,7 +216,7 @@ export function SubjectsPage() {
 
       {/* Subject Tabs */}
       <div className="flex border-b border-border/40 overflow-x-auto">
-        {subjectsData.map(s => {
+        {subjects.map(s => {
           const Icon = ICONS[s.icon] ?? BookOpen;
           const isActive = s.id === activeId;
           return (

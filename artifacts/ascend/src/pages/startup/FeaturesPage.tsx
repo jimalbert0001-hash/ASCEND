@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Layers, Bug, Plus, Pencil, Trash2, ThumbsUp, AlertTriangle, CheckCircle2, Circle, ArrowUpCircle, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,8 @@ import {
   Feature, BugReport, FeatureStatus, Effort, Priority, BugSeverity, BugStatus,
   PRIORITY_COLORS, SEVERITY_COLORS,
 } from "@/lib/startup-data";
-import { createFeature, updateFeature, deleteFeature, createBug, updateBug, deleteBug } from "@/lib/startup-supabase";
+import { createFeature, updateFeature, deleteFeature, createBug, updateBug, deleteBug, getFeatures, getBugs } from "@/lib/startup-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
@@ -51,6 +52,8 @@ function FeatureModal({ open, onClose, onSaved, projectId, initial }: {
   const [impact, setImpact] = useState<'low' | 'medium' | 'high'>(initial?.impact ?? 'medium');
   const [requestedBy, setRequestedBy] = useState(initial?.requestedBy ?? '');
   const [saving, setSaving] = useState(false);
+  const { user: featUser } = useAuth();
+  const featUserId = featUser?.id ?? 'mock-user-1';
 
   async function handleSave() {
     if (!title.trim()) return;
@@ -67,7 +70,7 @@ function FeatureModal({ open, onClose, onSaved, projectId, initial }: {
       await updateFeature(initial.id, payload);
       result = { ...initial, ...payload };
     } else {
-      result = await createFeature(payload);
+      result = await createFeature(featUserId, payload);
     }
     setSaving(false);
     onSaved(result);
@@ -160,6 +163,8 @@ function BugModal({ open, onClose, onSaved, projectId, initial }: {
   const [severity, setSeverity] = useState<BugSeverity>(initial?.severity ?? 'medium');
   const [status, setStatus] = useState<BugStatus>(initial?.status ?? 'open');
   const [saving, setSaving] = useState(false);
+  const { user: bugUser } = useAuth();
+  const bugUserId = bugUser?.id ?? 'mock-user-1';
 
   async function handleSave() {
     if (!title.trim()) return;
@@ -175,7 +180,7 @@ function BugModal({ open, onClose, onSaved, projectId, initial }: {
       await updateBug(initial.id, payload);
       result = { ...initial, ...payload };
     } else {
-      result = await createBug(payload);
+      result = await createBug(bugUserId, payload);
     }
     setSaving(false);
     onSaved(result);
@@ -242,6 +247,19 @@ export function FeaturesPage() {
   const [editBug, setEditBug] = useState<BugReport | undefined>();
   const [featureStatusFilter, setFeatureStatusFilter] = useState<FeatureStatus | '__all__'>('__all__');
   const [bugStatusFilter, setBugStatusFilter] = useState<BugStatus | '__all__'>('__all__');
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getFeatures(selectedProject).then(data => setFeatures(prev => {
+      const other = prev.filter(f => f.projectId !== selectedProject);
+      return [...other, ...data];
+    }));
+    getBugs(selectedProject).then(data => setBugs(prev => {
+      const other = prev.filter(b => b.projectId !== selectedProject);
+      return [...other, ...data];
+    }));
+  }, [selectedProject]);
 
   const projectFeatures = features.filter(f => f.projectId === selectedProject);
   const projectBugs = bugs.filter(b => b.projectId === selectedProject);

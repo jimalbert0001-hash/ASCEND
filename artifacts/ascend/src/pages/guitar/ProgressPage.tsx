@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, Plus, Trash2, Save, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -20,7 +20,8 @@ import {
   scalesData as initScales, skillAreas as initSkillAreas, practiceSessions,
   SCALE_STATUS_COLORS,
 } from "@/lib/guitar-data";
-import { updateScale, createScale, deleteScale, updateSkillArea } from "@/lib/guitar-supabase";
+import { updateScale, createScale, deleteScale, updateSkillArea, getScales, getSkillAreas } from "@/lib/guitar-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const SCALE_CYCLE: ScaleStatus[] = ['not_started', 'learning', 'comfortable', 'mastered'];
@@ -42,6 +43,13 @@ export function ProgressPage() {
   const [skills, setSkills] = useState<SkillArea[]>(initSkillAreas);
   const [scaleOpen, setScaleOpen] = useState(false);
   const [sf, setSf] = useState({ name: '', positions: 5, positionsMastered: 0, status: 'not_started' as ScaleStatus, notes: '' });
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getScales(userId).then(data => setScales(data));
+    getSkillAreas(userId).then(data => setSkills(data));
+  }, [userId]);
 
   const radarData = skills.map(s => ({ skill: s.name.split(' ')[0], value: s.level, fullMark: 10 }));
 
@@ -52,7 +60,7 @@ export function ProgressPage() {
   }
 
   async function saveScale() {
-    const s = await createScale({ ...sf, modes: [], positionsMastered: Number(sf.positionsMastered), positions: Number(sf.positions) });
+    const s = await createScale(userId, { ...sf, modes: [], positionsMastered: Number(sf.positionsMastered), positions: Number(sf.positions) });
     setScales(prev => [...prev, s]);
     setScaleOpen(false);
     setSf({ name: '', positions: 5, positionsMastered: 0, status: 'not_started', notes: '' });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, Plus, Trash2, Swords, Save, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -15,7 +15,8 @@ import {
   TrainingSession, GameNote, trainingSessions as initTraining, gameNotes as initGames,
   TRAINING_FOCUS_COLORS, INTENSITY_COLORS, RESULT_COLORS, TrainingFocus, TrainingIntensity, ChessPlatform, ChessResult,
 } from "@/lib/chess-data";
-import { createTrainingSession, deleteTrainingSession, createGameNote, deleteGameNote } from "@/lib/chess-supabase";
+import { createTrainingSession, deleteTrainingSession, createGameNote, deleteGameNote, getTrainingSessions, getGameNotes } from "@/lib/chess-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
@@ -24,19 +25,26 @@ export function TrainingPage() {
   const [games, setGames] = useState<GameNote[]>(initGames);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getTrainingSessions(userId).then(data => setSessions(data));
+    getGameNotes(userId).then(data => setGames(data));
+  }, [userId]);
 
   const [sf, setSf] = useState({ date: new Date().toISOString().slice(0, 10), durationMins: 60, focus: 'tactics' as TrainingFocus, intensity: 'medium' as TrainingIntensity, notes: '', puzzlesSolved: '', gamesPlayed: '' });
   const [gf, setGf] = useState({ date: new Date().toISOString().slice(0, 10), platform: 'lichess' as ChessPlatform, opponent: '', result: 'win' as ChessResult, color: 'white' as 'white' | 'black', opening: '', analysis: '', ratingAtTime: '' });
 
   async function saveSession() {
-    const s = await createTrainingSession({ ...sf, durationMins: Number(sf.durationMins), puzzlesSolved: sf.puzzlesSolved ? Number(sf.puzzlesSolved) : undefined, gamesPlayed: sf.gamesPlayed ? Number(sf.gamesPlayed) : undefined });
+    const s = await createTrainingSession(userId, { ...sf, durationMins: Number(sf.durationMins), puzzlesSolved: sf.puzzlesSolved ? Number(sf.puzzlesSolved) : undefined, gamesPlayed: sf.gamesPlayed ? Number(sf.gamesPlayed) : undefined });
     setSessions(prev => [s, ...prev]);
     setSessionOpen(false);
     setSf({ date: new Date().toISOString().slice(0, 10), durationMins: 60, focus: 'tactics', intensity: 'medium', notes: '', puzzlesSolved: '', gamesPlayed: '' });
   }
 
   async function saveGame() {
-    const g = await createGameNote({ ...gf, ratingAtTime: Number(gf.ratingAtTime), lessons: [] });
+    const g = await createGameNote(userId, { ...gf, ratingAtTime: Number(gf.ratingAtTime), lessons: [] });
     setGames(prev => [g, ...prev]);
     setGameOpen(false);
     setGf({ date: new Date().toISOString().slice(0, 10), platform: 'lichess', opponent: '', result: 'win', color: 'white', opening: '', analysis: '', ratingAtTime: '' });

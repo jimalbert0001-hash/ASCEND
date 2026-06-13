@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { LineChart as LineChartIcon, Users, DollarSign, TrendingUp, Target, RefreshCw, ArrowUpRight, CheckCircle2, Clock, Circle, XCircle, Plus, Pencil, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,8 @@ import {
   LaunchMilestone, MilestoneCat, MilestoneStatus,
   getProjectStats, MILESTONE_CAT_COLORS,
 } from "@/lib/startup-data";
-import { createMilestone, updateMilestone } from "@/lib/startup-supabase";
+import { createMilestone, updateMilestone, getMilestones } from "@/lib/startup-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
 const fadeUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -72,6 +73,8 @@ function MilestoneModal({ open, onClose, onSaved, projectId, initial }: {
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? '');
   const [status, setStatus] = useState<MilestoneStatus>(initial?.status ?? 'pending');
   const [saving, setSaving] = useState(false);
+  const { user: msUser } = useAuth();
+  const msUserId = msUser?.id ?? 'mock-user-1';
 
   async function handleSave() {
     if (!title.trim()) return;
@@ -82,7 +85,7 @@ function MilestoneModal({ open, onClose, onSaved, projectId, initial }: {
       await updateMilestone(initial.id, payload);
       result = { ...initial, ...payload };
     } else {
-      result = await createMilestone(payload);
+      result = await createMilestone(msUserId, payload);
     }
     setSaving(false);
     onSaved(result);
@@ -181,6 +184,15 @@ export function MetricsPage() {
   const [milestones, setMilestones] = useState<LaunchMilestone[]>(milestonesData);
   const [milestoneModal, setMilestoneModal] = useState(false);
   const [editMilestone, setEditMilestone] = useState<LaunchMilestone | undefined>();
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getMilestones(selectedProject).then(data => setMilestones(prev => {
+      const other = prev.filter(m => m.projectId !== selectedProject);
+      return [...other, ...data];
+    }));
+  }, [selectedProject]);
 
   const stats = getProjectStats(selectedProject);
   const rev = revenueData.filter(r => r.projectId === selectedProject);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, Plus, Trash2, Save, Mic, BookOpen, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,8 @@ import {
   practiceSessions as initSessions, recordings as initRecordings, theoryLessons as initLessons,
   PracticeFocus, PracticeIntensity, PRACTICE_FOCUS_COLORS, PRACTICE_INTENSITY_COLORS,
 } from "@/lib/guitar-data";
-import { createPracticeSession, deletePracticeSession, createRecording, deleteRecording, updateTheoryLesson } from "@/lib/guitar-supabase";
+import { createPracticeSession, deletePracticeSession, createRecording, deleteRecording, updateTheoryLesson, getPracticeSessions, getRecordings, getTheoryLessons } from "@/lib/guitar-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const THEORY_STATUS_NEXT: Record<string, 'not_started' | 'in_progress' | 'completed'> = { not_started: 'in_progress', in_progress: 'completed', completed: 'not_started' };
@@ -27,6 +28,14 @@ export function PracticePage() {
   const [lessons, setLessons] = useState<TheoryLesson[]>(initLessons);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [recOpen, setRecOpen] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getPracticeSessions(userId).then(data => setSessions(data));
+    getRecordings(userId).then(data => setRecs(data));
+    getTheoryLessons(userId).then(data => setLessons(data));
+  }, [userId]);
 
   const [sf, setSf] = useState({ date: new Date().toISOString().slice(0, 10), durationMins: 30, focus: 'songs' as PracticeFocus, intensity: 'focused' as PracticeIntensity, notes: '', bpm: '' });
   const [rf, setRf] = useState({ date: new Date().toISOString().slice(0, 10), title: '', durationSecs: 120, type: 'cover' as 'cover' | 'original' | 'exercise', notes: '' });
@@ -35,7 +44,7 @@ export function PracticePage() {
   const thisMonthMins = sessions.filter(s => s.date.startsWith('2026-06')).reduce((s, p) => s + p.durationMins, 0);
 
   async function saveSession() {
-    const s = await createPracticeSession({ ...sf, durationMins: Number(sf.durationMins), bpm: sf.bpm ? Number(sf.bpm) : undefined });
+    const s = await createPracticeSession(userId, { ...sf, durationMins: Number(sf.durationMins), bpm: sf.bpm ? Number(sf.bpm) : undefined });
     setSessions(prev => [s, ...prev]);
     setSessionOpen(false);
     setSf({ date: new Date().toISOString().slice(0, 10), durationMins: 30, focus: 'songs', intensity: 'focused', notes: '', bpm: '' });
@@ -47,7 +56,7 @@ export function PracticePage() {
   }
 
   async function saveRecording() {
-    const r = await createRecording({ ...rf, durationSecs: Number(rf.durationSecs) });
+    const r = await createRecording(userId, { ...rf, durationSecs: Number(rf.durationSecs) });
     setRecs(prev => [r, ...prev]);
     setRecOpen(false);
     setRf({ date: new Date().toISOString().slice(0, 10), title: '', durationSecs: 120, type: 'cover', notes: '' });

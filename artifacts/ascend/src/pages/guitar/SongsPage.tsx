@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ListMusic, Plus, Trash2, Save, Star, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,8 @@ import {
   songsData as initSongs, chordsData as initChords,
   SONG_STATUS_COLORS,
 } from "@/lib/guitar-data";
-import { createSong, deleteSong, updateSong, updateChord } from "@/lib/guitar-supabase";
+import { createSong, deleteSong, updateSong, updateChord, getSongs, getChords } from "@/lib/guitar-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const STATUS_LIST: SongStatus[] = ['wish_list', 'learning', 'repertoire', 'polished', 'on_hold'];
@@ -30,10 +31,17 @@ export function SongsPage() {
   const [dlgOpen, setDlgOpen] = useState(false);
   const [form, setForm] = useState(defaultSong);
   const [chordsInput, setChordsInput] = useState('');
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getSongs(userId).then(data => setSongs(data));
+    getChords(userId).then(data => setChords(data));
+  }, [userId]);
 
   async function saveSong() {
     const chordList = chordsInput ? chordsInput.split(',').map(c => c.trim()).filter(Boolean) : form.chords;
-    const s = await createSong({ ...form, chords: chordList });
+    const s = await createSong(userId, { ...form, chords: chordList });
     setSongs(prev => [s, ...prev]);
     setDlgOpen(false);
     setForm(defaultSong);

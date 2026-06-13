@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Plus, Trash2, Edit3, Save, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -16,7 +16,8 @@ import {
   ChessOpening, EndgameStudy, openingsData as initOpenings, endgameStudies as initEndgames,
   OpeningStatus, OPENING_STATUS_COLORS, ENDGAME_STATUS_COLORS, EndgameStatus, EndgameCategory,
 } from "@/lib/chess-data";
-import { createOpening, deleteOpening, updateOpening, createEndgameStudy, deleteEndgameStudy, updateEndgameStudy } from "@/lib/chess-supabase";
+import { createOpening, deleteOpening, updateOpening, createEndgameStudy, deleteEndgameStudy, updateEndgameStudy, getOpenings, getEndgameStudies } from "@/lib/chess-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const STATUS_CYCLE: OpeningStatus[] = ['learning', 'mastered', 'dropped'];
 const ENDGAME_CYCLE: EndgameStatus[] = ['not_started', 'in_progress', 'mastered'];
@@ -30,10 +31,17 @@ export function OpeningsPage() {
   const [dlgOpen, setDlgOpen] = useState(false);
   const [form, setForm] = useState(defaultOp);
   const [tagsInput, setTagsInput] = useState('');
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getOpenings(userId).then(data => setOpenings(data));
+    getEndgameStudies(userId).then(data => setEndgames(data));
+  }, [userId]);
 
   async function saveOpening() {
     const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(Boolean) : form.tags;
-    const op = await createOpening({ ...form, tags, winRate: Number(form.winRate), gamesPlayed: Number(form.gamesPlayed) });
+    const op = await createOpening(userId, { ...form, tags, winRate: Number(form.winRate), gamesPlayed: Number(form.gamesPlayed) });
     setOpenings(prev => [op, ...prev]);
     setDlgOpen(false);
     setForm(defaultOp);

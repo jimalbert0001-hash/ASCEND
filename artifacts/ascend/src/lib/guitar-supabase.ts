@@ -8,20 +8,20 @@ const isMock = !isSupabaseConfigured;
 
 // ─── Practice Sessions ────────────────────────────────────────────────────────
 
-export async function getPracticeSessions(): Promise<PracticeSession[]> {
+export async function getPracticeSessions(userId: string): Promise<PracticeSession[]> {
   if (isMock) return practiceSessions;
   try {
-    const { data, error } = await supabase.from('guitar_practice_sessions').select('*').order('date', { ascending: false });
+    const { data, error } = await supabase.from('guitar_practice_sessions').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;
     return (data as PracticeSession[]) ?? practiceSessions;
   } catch { return practiceSessions; }
 }
 
-export async function createPracticeSession(s: Omit<PracticeSession, 'id'>): Promise<PracticeSession> {
+export async function createPracticeSession(userId: string, s: Omit<PracticeSession, 'id'>): Promise<PracticeSession> {
   const newS: PracticeSession = { ...s, id: crypto.randomUUID() };
   if (isMock) return newS;
   try {
-    const { data, error } = await supabase.from('guitar_practice_sessions').insert({ ...s, user_id: (await supabase.auth.getUser()).data.user?.id }).select().single();
+    const { data, error } = await supabase.from('guitar_practice_sessions').insert({ ...s, user_id: userId }).select().single();
     if (error) throw error;
     return data as PracticeSession;
   } catch { return newS; }
@@ -37,22 +37,22 @@ export async function deletePracticeSession(id: string): Promise<void> {
   try { await supabase.from('guitar_practice_sessions').delete().eq('id', id); } catch { }
 }
 
-// ─── Songs ────────────────────────────────────────────────────────────────────
+// ─── Songs ─────────────────────────────────────────────────────────────────────────
 
-export async function getSongs(): Promise<Song[]> {
+export async function getSongs(userId: string): Promise<Song[]> {
   if (isMock) return songsData;
   try {
-    const { data, error } = await supabase.from('guitar_songs').select('*').order('start_date', { ascending: false });
+    const { data, error } = await supabase.from('guitar_songs').select('*').eq('user_id', userId).order('start_date', { ascending: false });
     if (error) throw error;
     return (data as Song[]) ?? songsData;
   } catch { return songsData; }
 }
 
-export async function createSong(song: Omit<Song, 'id'>): Promise<Song> {
+export async function createSong(userId: string, song: Omit<Song, 'id'>): Promise<Song> {
   const newSong: Song = { ...song, id: crypto.randomUUID() };
   if (isMock) return newSong;
   try {
-    const { data, error } = await supabase.from('guitar_songs').insert({ ...song, user_id: (await supabase.auth.getUser()).data.user?.id }).select().single();
+    const { data, error } = await supabase.from('guitar_songs').insert({ ...song, user_id: userId }).select().single();
     if (error) throw error;
     return data as Song;
   } catch { return newSong; }
@@ -68,22 +68,22 @@ export async function deleteSong(id: string): Promise<void> {
   try { await supabase.from('guitar_songs').delete().eq('id', id); } catch { }
 }
 
-// ─── Chords ───────────────────────────────────────────────────────────────────
+// ─── Chords ─────────────────────────────────────────────────────────────────────────
 
-export async function getChords(): Promise<ChordProgress[]> {
+export async function getChords(userId: string): Promise<ChordProgress[]> {
   if (isMock) return chordsData;
   try {
-    const { data, error } = await supabase.from('guitar_chords').select('*');
+    const { data, error } = await supabase.from('guitar_chords').select('*').eq('user_id', userId);
     if (error) throw error;
     return (data as ChordProgress[]) ?? chordsData;
   } catch { return chordsData; }
 }
 
-export async function createChord(chord: Omit<ChordProgress, 'id'>): Promise<ChordProgress> {
+export async function createChord(userId: string, chord: Omit<ChordProgress, 'id'>): Promise<ChordProgress> {
   const newChord: ChordProgress = { ...chord, id: crypto.randomUUID() };
   if (isMock) return newChord;
   try {
-    const { data, error } = await supabase.from('guitar_chords').insert({ ...chord, user_id: (await supabase.auth.getUser()).data.user?.id }).select().single();
+    const { data, error } = await supabase.from('guitar_chords').insert({ ...chord, user_id: userId }).select().single();
     if (error) throw error;
     return data as ChordProgress;
   } catch { return newChord; }
@@ -99,22 +99,22 @@ export async function deleteChord(id: string): Promise<void> {
   try { await supabase.from('guitar_chords').delete().eq('id', id); } catch { }
 }
 
-// ─── Scales ───────────────────────────────────────────────────────────────────
+// ─── Scales ─────────────────────────────────────────────────────────────────────────
 
-export async function getScales(): Promise<ScaleProgress[]> {
+export async function getScales(userId: string): Promise<ScaleProgress[]> {
   if (isMock) return scalesData;
   try {
-    const { data, error } = await supabase.from('guitar_scales').select('*');
+    const { data, error } = await supabase.from('guitar_scales').select('*').eq('user_id', userId);
     if (error) throw error;
     return (data as ScaleProgress[]) ?? scalesData;
   } catch { return scalesData; }
 }
 
-export async function createScale(scale: Omit<ScaleProgress, 'id'>): Promise<ScaleProgress> {
+export async function createScale(userId: string, scale: Omit<ScaleProgress, 'id'>): Promise<ScaleProgress> {
   const newScale: ScaleProgress = { ...scale, id: crypto.randomUUID() };
   if (isMock) return newScale;
   try {
-    const { data, error } = await supabase.from('guitar_scales').insert({ ...scale, user_id: (await supabase.auth.getUser()).data.user?.id }).select().single();
+    const { data, error } = await supabase.from('guitar_scales').insert({ ...scale, user_id: userId }).select().single();
     if (error) throw error;
     return data as ScaleProgress;
   } catch { return newScale; }
@@ -130,12 +130,12 @@ export async function deleteScale(id: string): Promise<void> {
   try { await supabase.from('guitar_scales').delete().eq('id', id); } catch { }
 }
 
-// ─── Theory Lessons ───────────────────────────────────────────────────────────
+// ─── Theory Lessons ──────────────────────────────────────────────────────────
 
-export async function getTheoryLessons(): Promise<TheoryLesson[]> {
+export async function getTheoryLessons(userId: string): Promise<TheoryLesson[]> {
   if (isMock) return theoryLessons;
   try {
-    const { data, error } = await supabase.from('guitar_theory_lessons').select('*');
+    const { data, error } = await supabase.from('guitar_theory_lessons').select('*').eq('user_id', userId);
     if (error) throw error;
     return (data as TheoryLesson[]) ?? theoryLessons;
   } catch { return theoryLessons; }
@@ -146,22 +146,22 @@ export async function updateTheoryLesson(id: string, updates: Partial<TheoryLess
   try { await supabase.from('guitar_theory_lessons').update(updates).eq('id', id); } catch { }
 }
 
-// ─── Recordings ───────────────────────────────────────────────────────────────
+// ─── Recordings ────────────────────────────────────────────────────────────────
 
-export async function getRecordings(): Promise<RecordingEntry[]> {
+export async function getRecordings(userId: string): Promise<RecordingEntry[]> {
   if (isMock) return recordings;
   try {
-    const { data, error } = await supabase.from('guitar_recordings').select('*').order('date', { ascending: false });
+    const { data, error } = await supabase.from('guitar_recordings').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;
     return (data as RecordingEntry[]) ?? recordings;
   } catch { return recordings; }
 }
 
-export async function createRecording(rec: Omit<RecordingEntry, 'id'>): Promise<RecordingEntry> {
+export async function createRecording(userId: string, rec: Omit<RecordingEntry, 'id'>): Promise<RecordingEntry> {
   const newRec: RecordingEntry = { ...rec, id: crypto.randomUUID() };
   if (isMock) return newRec;
   try {
-    const { data, error } = await supabase.from('guitar_recordings').insert({ ...rec, user_id: (await supabase.auth.getUser()).data.user?.id }).select().single();
+    const { data, error } = await supabase.from('guitar_recordings').insert({ ...rec, user_id: userId }).select().single();
     if (error) throw error;
     return data as RecordingEntry;
   } catch { return newRec; }
@@ -174,10 +174,10 @@ export async function deleteRecording(id: string): Promise<void> {
 
 // ─── Skill Areas ──────────────────────────────────────────────────────────────
 
-export async function getSkillAreas(): Promise<SkillArea[]> {
+export async function getSkillAreas(userId: string): Promise<SkillArea[]> {
   if (isMock) return skillAreas;
   try {
-    const { data, error } = await supabase.from('guitar_skill_areas').select('*');
+    const { data, error } = await supabase.from('guitar_skill_areas').select('*').eq('user_id', userId);
     if (error) throw error;
     return (data as SkillArea[]) ?? skillAreas;
   } catch { return skillAreas; }

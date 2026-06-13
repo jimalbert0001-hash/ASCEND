@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Map, Plus, Pencil, Trash2, Flag, CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,8 @@ import {
   RoadmapItem, RoadmapPhase, RoadmapStatus, Priority,
   PHASE_LABELS, PRIORITY_COLORS, STATUS_COLORS,
 } from "@/lib/startup-data";
-import { createRoadmapItem, updateRoadmapItem, deleteRoadmapItem } from "@/lib/startup-supabase";
+import { createRoadmapItem, updateRoadmapItem, deleteRoadmapItem, getRoadmapItems } from "@/lib/startup-supabase";
+import { useAuth } from "@/providers/AuthProvider";
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
@@ -50,6 +51,8 @@ function ItemModal({ open, onClose, onSaved, projectId, defaultPhase, initial }:
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? '');
   const [tags, setTags] = useState(initial?.tags?.join(', ') ?? '');
   const [saving, setSaving] = useState(false);
+  const { user: rmUser } = useAuth();
+  const rmUserId = rmUser?.id ?? 'mock-user-1';
 
   async function handleSave() {
     if (!title.trim()) return;
@@ -64,7 +67,7 @@ function ItemModal({ open, onClose, onSaved, projectId, defaultPhase, initial }:
       await updateRoadmapItem(initial.id, payload);
       result = { ...initial, ...payload };
     } else {
-      result = await createRoadmapItem(payload);
+      result = await createRoadmapItem(rmUserId, payload);
     }
     setSaving(false);
     onSaved(result);
@@ -133,6 +136,15 @@ export function RoadmapPage() {
   const [items, setItems] = useState<RoadmapItem[]>(roadmapData);
   const [addModal, setAddModal] = useState<{ phase: RoadmapPhase } | null>(null);
   const [editItem, setEditItem] = useState<RoadmapItem | undefined>();
+  const { user } = useAuth();
+  const userId = user?.id ?? 'mock-user-1';
+
+  useEffect(() => {
+    getRoadmapItems(selectedProject).then(data => setItems(prev => {
+      const other = prev.filter(i => i.projectId !== selectedProject);
+      return [...other, ...data];
+    }));
+  }, [selectedProject]);
 
   const projectItems = items.filter(i => i.projectId === selectedProject);
 
