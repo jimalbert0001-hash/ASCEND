@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 const MOBILE_NAV_ITEMS = [
   { name: "Home", href: "/", icon: LayoutDashboard },
   { name: "Acad", href: "/academics", icon: BookOpen },
+  { name: "Start", href: "/startup", icon: Rocket },
   { name: "Chess", href: "/chess", icon: Crown },
   { name: "Guitar", href: "/guitar", icon: Music },
-  { name: "AI", href: "/ai-mentor", icon: Bot },
 ];
 
 export function MobileNav() {
