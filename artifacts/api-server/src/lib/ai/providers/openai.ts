@@ -5,7 +5,7 @@ export class OpenAIProvider implements AIProvider {
   private apiKey: string;
   private baseUrl: string;
 
-  constructor(apiKey: string, baseUrl = 'https://api.openai.com/v1') {
+  constructor(apiKey: string, baseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? 'https://api.openai.com/v1') {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
   }

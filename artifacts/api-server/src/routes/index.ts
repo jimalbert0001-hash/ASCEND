@@ -4,7 +4,7 @@ import aiRouter from "./ai/index.js";
 import logRouter from "./log/index.js";
 import dataRouter from "./data/index.js";
 import chessRouter from "./chess/index.js";
-import { optionalAuth } from "../lib/supabaseAuth.js";
+import { optionalAuth } from "../lib/replitAuth.js";
 
 const router: IRouter = Router();
 

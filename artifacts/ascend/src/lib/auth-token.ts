@@ -1,6 +1,5 @@
-import { supabase } from "./supabase";
-
+// Auth is now session-based via Replit Auth (cookies).
+// No token needed — credentials are sent automatically via cookie.
 export async function getAuthToken(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  return null;
 }

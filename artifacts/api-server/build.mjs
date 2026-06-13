@@ -101,6 +101,9 @@ async function buildAll() {
       "puppeteer-core",
       "electron",
       "ws",
+      "passport",
+      "express-session",
+      "connect-pg-simple",
     ],
     sourcemap: "linked",
     plugins: [
