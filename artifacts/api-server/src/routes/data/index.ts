@@ -4,10 +4,17 @@ import {
   studySessions, subjects, mockTests,
   chessSessions, chessRatings,
   guitarSessions, guitarSongs,
-  tasks, goals,
+  tasks, goals, users,
 } from '@workspace/db';
 import { eq, desc, and, gte, sum, count } from 'drizzle-orm';
 import { logger } from '../../lib/logger.js';
+
+async function ensureUserExists(userId: string): Promise<void> {
+  await db.insert(users).values({
+    id: userId,
+    email: `${userId}@replit.user`,
+  }).onConflictDoNothing();
+}
 
 const router = Router();
 
@@ -21,6 +28,7 @@ router.get('/academics', async (req, res) => {
   const userId = req.query.userId as string | undefined;
   if (!userId) { res.status(400).json({ error: 'userId required' }); return; }
   try {
+    await ensureUserExists(userId);
     const [recentSessions, userSubjects, recentTests] = await Promise.all([
       db.select().from(studySessions)
         .where(eq(studySessions.userId, userId))
@@ -55,6 +63,7 @@ router.get('/chess', async (req, res) => {
   const userId = req.query.userId as string | undefined;
   if (!userId) { res.status(400).json({ error: 'userId required' }); return; }
   try {
+    await ensureUserExists(userId);
     const [recentSessions, ratingHistory] = await Promise.all([
       db.select().from(chessSessions)
         .where(eq(chessSessions.userId, userId))
@@ -91,6 +100,7 @@ router.get('/guitar', async (req, res) => {
   const userId = req.query.userId as string | undefined;
   if (!userId) { res.status(400).json({ error: 'userId required' }); return; }
   try {
+    await ensureUserExists(userId);
     const [recentSessions, songs] = await Promise.all([
       db.select().from(guitarSessions)
         .where(eq(guitarSessions.userId, userId))
@@ -117,6 +127,7 @@ router.get('/tasks', async (req, res) => {
   const userId = req.query.userId as string | undefined;
   if (!userId) { res.status(400).json({ error: 'userId required' }); return; }
   try {
+    await ensureUserExists(userId);
     const [userTasks, userGoals] = await Promise.all([
       db.select().from(tasks)
         .where(eq(tasks.userId, userId))
@@ -152,6 +163,7 @@ router.get('/goals', async (req, res) => {
   const userId = req.query.userId as string | undefined;
   if (!userId) { res.status(400).json({ error: 'userId required' }); return; }
   try {
+    await ensureUserExists(userId);
     const userGoals = await db.select().from(goals)
       .where(eq(goals.userId, userId));
 
@@ -203,6 +215,7 @@ router.put('/goals', async (req, res) => {
   }
 
   try {
+    await ensureUserExists(userId);
     const now = new Date();
     for (const g of goalsList) {
       await db.insert(goals)
