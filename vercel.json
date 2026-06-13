@@ -1,6 +1,11 @@
 {
   "version": 2,
   "outputDirectory": "dist",
+  "functions": {
+    "api/index.mjs": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
