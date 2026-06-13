@@ -19,8 +19,21 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (!user) {
-    window.location.href = "/api/login";
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-6">
+        <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-2xl">
+          A
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">ASCEND</h1>
+        <p className="text-muted-foreground text-sm">Sign in to access your dashboard</p>
+        <a
+          href="/api/login"
+          className="inline-flex items-center justify-center px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          Sign in with Replit
+        </a>
+      </div>
+    );
   }
 
   return (
