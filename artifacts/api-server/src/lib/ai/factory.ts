@@ -8,6 +8,8 @@ export type ProviderName = 'openai' | 'anthropic' | 'gemini' | 'openrouter';
 
 const OPENROUTER_KEY_NAMES = [
   'OPENROUTER_API_KEY',
+  'OPEN_ROUTER_API_KEY',
+  'OPEN_ROUTER_API',
   'Stanford Coach',
   'OPENROUTER_KEY',
 ];
