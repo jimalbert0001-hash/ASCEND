@@ -37,10 +37,10 @@ ASCEND is a personal self-improvement tracking app built exclusively for Prince.
 ---
 
 ## Current Goals (from Dashboard)
-- Score 95%+ in Physics — 68%
-- Launch MVP by July — 40%
-- Reach 1800 Chess Rating (currently 1450/1800)
-- Master Fingerpicking — 55%
+- Score 95%+ in Physics 
+- Launch MVP by July 
+- Reach 2500 Chess Rating 
+- Master Fingerpicking 
 
 ---
 
@@ -63,7 +63,7 @@ Store all secrets in **Replit Secrets tab (🔒)**, never in code files:
 
 ## Prince's 4 Main Weapons for Stanford
 1. **Grades** — 95%+ in CBSE Class 12
-2. **Chess** — pushing to 1800+ rating
+2. **Chess** — pushing to 2500+ rating
 3. **Startup** — launching a real MVP
 4. **ASCEND** — proof of self-discipline and drive
 
