@@ -23,7 +23,7 @@ export class OpenRouterProvider implements AIProvider {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,
-        'HTTP-Referer': 'https://ascend.replit.app',
+        'HTTP-Referer': process.env.DEPLOYED_URL ?? 'https://ascend.app',
         'X-Title': 'ASCEND',
       },
       body: JSON.stringify({

@@ -111,7 +111,7 @@ export interface ChessComGame {
 export async function fetchChessComGames(username: string, year: number, month: number): Promise<ChessComGame[]> {
   const monthStr = String(month).padStart(2, '0');
   const res = await fetch(`https://api.chess.com/pub/player/${username.toLowerCase()}/games/${year}/${monthStr}`, {
-    headers: { 'User-Agent': 'ASCEND/1.0 (replit.app)' },
+    headers: { 'User-Agent': 'ASCEND/1.0' },
   });
   if (!res.ok) {
     if (res.status === 404) return [];
@@ -167,7 +167,7 @@ export async function fetchLichessGames(username: string, max = 30): Promise<Lic
   const res = await fetch(`https://lichess.org/api/games/user/${username}?perfType=rapid&max=${max}&pgnInJson=false&moves=true&tags=true&clocks=true&evals=false&opening=true&fen=false`, {
     headers: {
       'Accept': 'application/x-ndjson',
-      'User-Agent': 'ASCEND/1.0 (replit.app)',
+      'User-Agent': 'ASCEND/1.0',
     },
   });
   if (!res.ok) {
