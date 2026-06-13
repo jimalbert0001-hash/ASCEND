@@ -1,4 +1,4 @@
-import type { AIMessage, AIProvider, ChatOptions } from '../types.js';
+import type { AIMessage, AIProvider, ChatOptions, ChatResult, TokenUsage } from '../types.js';
 
 export class OpenRouterProvider implements AIProvider {
   readonly name = 'openrouter';
@@ -36,7 +36,7 @@ export class OpenRouterProvider implements AIProvider {
     });
   }
 
-  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<string> {
+  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<ChatResult> {
     const response = await this.chatCompletions(messages, options, false);
     if (!response.ok) {
       const err = await response.text();
@@ -44,15 +44,23 @@ export class OpenRouterProvider implements AIProvider {
     }
     const data = (await response.json()) as {
       choices: Array<{ message: { content: string } }>;
+      usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
     };
-    return data.choices[0]?.message?.content ?? '';
+    const usage: TokenUsage | undefined = data.usage
+      ? {
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens,
+        }
+      : undefined;
+    return { content: data.choices[0]?.message?.content ?? '', usage };
   }
 
   async streamChat(
     messages: AIMessage[],
     options: ChatOptions = {},
     onChunk?: (chunk: string) => void
-  ): Promise<string> {
+  ): Promise<ChatResult> {
     const response = await this.chatCompletions(messages, options, true);
     if (!response.ok) {
       const err = await response.text();
@@ -60,6 +68,8 @@ export class OpenRouterProvider implements AIProvider {
     }
 
     let full = '';
+    let promptTokens = 0;
+    let completionTokens = 0;
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
 
@@ -75,9 +85,14 @@ export class OpenRouterProvider implements AIProvider {
         if (payload === '[DONE]') continue;
         try {
           const parsed = JSON.parse(payload) as {
-            choices: Array<{ delta: { content?: string } }>;
+            choices?: Array<{ delta: { content?: string } }>;
+            usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
           };
-          const chunk = parsed.choices[0]?.delta?.content ?? '';
+          if (parsed.usage) {
+            promptTokens = parsed.usage.prompt_tokens;
+            completionTokens = parsed.usage.completion_tokens;
+          }
+          const chunk = parsed.choices?.[0]?.delta?.content ?? '';
           if (chunk) {
             full += chunk;
             onChunk?.(chunk);
@@ -88,6 +103,14 @@ export class OpenRouterProvider implements AIProvider {
       }
     }
 
-    return full;
+    const usage: TokenUsage | undefined =
+      promptTokens || completionTokens
+        ? {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+          }
+        : undefined;
+    return { content: full, usage };
   }
 }

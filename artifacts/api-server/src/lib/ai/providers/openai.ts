@@ -1,4 +1,4 @@
-import type { AIProvider, AIMessage, ChatOptions } from '../types.js';
+import type { AIProvider, AIMessage, ChatOptions, ChatResult, TokenUsage } from '../types.js';
 
 export class OpenAIProvider implements AIProvider {
   readonly name = 'openai';
@@ -14,7 +14,7 @@ export class OpenAIProvider implements AIProvider {
     return Boolean(this.apiKey);
   }
 
-  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<string> {
+  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<ChatResult> {
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -36,15 +36,23 @@ export class OpenAIProvider implements AIProvider {
 
     const data = (await response.json()) as {
       choices: Array<{ message: { content: string } }>;
+      usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
     };
-    return data.choices[0]?.message?.content ?? '';
+    const usage: TokenUsage | undefined = data.usage
+      ? {
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens,
+        }
+      : undefined;
+    return { content: data.choices[0]?.message?.content ?? '', usage };
   }
 
   async streamChat(
     messages: AIMessage[],
     options: ChatOptions = {},
     onChunk?: (chunk: string) => void
-  ): Promise<string> {
+  ): Promise<ChatResult> {
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -57,6 +65,7 @@ export class OpenAIProvider implements AIProvider {
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens ?? 1500,
         stream: true,
+        stream_options: { include_usage: true },
       }),
     });
 
@@ -66,6 +75,8 @@ export class OpenAIProvider implements AIProvider {
     }
 
     let full = '';
+    let promptTokens = 0;
+    let completionTokens = 0;
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
 
@@ -81,9 +92,14 @@ export class OpenAIProvider implements AIProvider {
         if (payload === '[DONE]') continue;
         try {
           const parsed = JSON.parse(payload) as {
-            choices: Array<{ delta: { content?: string } }>;
+            choices?: Array<{ delta: { content?: string } }>;
+            usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
           };
-          const chunk = parsed.choices[0]?.delta?.content ?? '';
+          if (parsed.usage) {
+            promptTokens = parsed.usage.prompt_tokens;
+            completionTokens = parsed.usage.completion_tokens;
+          }
+          const chunk = parsed.choices?.[0]?.delta?.content ?? '';
           if (chunk) {
             full += chunk;
             onChunk?.(chunk);
@@ -94,6 +110,14 @@ export class OpenAIProvider implements AIProvider {
       }
     }
 
-    return full;
+    const usage: TokenUsage | undefined =
+      promptTokens || completionTokens
+        ? {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+          }
+        : undefined;
+    return { content: full, usage };
   }
 }

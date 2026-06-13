@@ -1,4 +1,4 @@
-import type { AIProvider, AIMessage, ChatOptions } from '../types.js';
+import type { AIProvider, AIMessage, ChatOptions, ChatResult, TokenUsage } from '../types.js';
 
 export class GeminiProvider implements AIProvider {
   readonly name = 'gemini';
@@ -38,7 +38,7 @@ export class GeminiProvider implements AIProvider {
     return result;
   }
 
-  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<string> {
+  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<ChatResult> {
     const model = options.model ?? 'gemini-1.5-flash';
     const { systemInstruction, contents } = this.buildContents(messages);
 
@@ -69,15 +69,24 @@ export class GeminiProvider implements AIProvider {
       candidates: Array<{
         content: { parts: Array<{ text: string }> };
       }>;
+      usageMetadata?: { promptTokenCount: number; candidatesTokenCount: number; totalTokenCount: number };
     };
-    return data.candidates[0]?.content?.parts?.[0]?.text ?? '';
+    const usage: TokenUsage | undefined = data.usageMetadata
+      ? {
+          promptTokens: data.usageMetadata.promptTokenCount,
+          completionTokens: data.usageMetadata.candidatesTokenCount,
+          totalTokens: data.usageMetadata.totalTokenCount,
+        }
+      : undefined;
+    const content = data.candidates[0]?.content?.parts?.[0]?.text ?? '';
+    return { content, usage };
   }
 
   async streamChat(
     messages: AIMessage[],
     options: ChatOptions = {},
     onChunk?: (chunk: string) => void
-  ): Promise<string> {
+  ): Promise<ChatResult> {
     const model = options.model ?? 'gemini-1.5-flash';
     const { systemInstruction, contents } = this.buildContents(messages);
 
@@ -105,6 +114,8 @@ export class GeminiProvider implements AIProvider {
     }
 
     let full = '';
+    let promptTokens = 0;
+    let completionTokens = 0;
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
 
@@ -119,10 +130,15 @@ export class GeminiProvider implements AIProvider {
         const payload = line.slice(6).trim();
         try {
           const parsed = JSON.parse(payload) as {
-            candidates: Array<{
+            candidates?: Array<{
               content: { parts: Array<{ text: string }> };
             }>;
+            usageMetadata?: { promptTokenCount: number; candidatesTokenCount: number; totalTokenCount: number };
           };
+          if (parsed.usageMetadata) {
+            promptTokens = parsed.usageMetadata.promptTokenCount;
+            completionTokens = parsed.usageMetadata.candidatesTokenCount;
+          }
           const chunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
           if (chunk) {
             full += chunk;
@@ -134,6 +150,14 @@ export class GeminiProvider implements AIProvider {
       }
     }
 
-    return full;
+    const usage: TokenUsage | undefined =
+      promptTokens || completionTokens
+        ? {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+          }
+        : undefined;
+    return { content: full, usage };
   }
 }

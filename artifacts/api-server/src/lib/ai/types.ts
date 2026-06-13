@@ -11,15 +11,26 @@ export interface ChatOptions {
   maxTokens?: number;
 }
 
+export interface ChatResult {
+  content: string;
+  usage?: TokenUsage;
+}
+
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 export interface AIProvider {
   readonly name: string;
   readonly isConfigured: boolean;
-  chat(messages: AIMessage[], options?: ChatOptions): Promise<string>;
+  chat(messages: AIMessage[], options?: ChatOptions): Promise<ChatResult>;
   streamChat(
     messages: AIMessage[],
     options?: ChatOptions,
     onChunk?: (chunk: string) => void
-  ): Promise<string>;
+  ): Promise<ChatResult>;
 }
 
 export type CoachRole =
@@ -98,6 +109,7 @@ export interface ChatRequest {
   role: CoachRole;
   context: UserContext;
   stream?: boolean;
+  personalityOverride?: string;
 }
 
 export interface RecommendationRequest {

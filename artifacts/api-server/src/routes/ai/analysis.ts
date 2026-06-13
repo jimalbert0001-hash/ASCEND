@@ -22,10 +22,10 @@ router.post('/goals', async (req, res) => {
   try {
     const prompt = buildGoalAnalysisPrompt(context);
     const raw = await provider.chat([{ role: 'user', content: prompt }]);
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const jsonMatch = raw.content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('No JSON in response');
     const result = JSON.parse(jsonMatch[0]) as { analyses: unknown[] };
-    res.json(result);
+    res.json({ ...result, usage: raw.usage ? { promptTokens: raw.usage.promptTokens, completionTokens: raw.usage.completionTokens, totalTokens: raw.usage.totalTokens } : undefined });
   } catch (err) {
     logger.error(err, 'Goal analysis error');
     res.status(500).json({ error: 'Failed to analyze goals', detail: String(err) });

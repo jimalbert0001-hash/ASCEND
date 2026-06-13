@@ -1,4 +1,4 @@
-import type { AIProvider, AIMessage, ChatOptions } from '../types.js';
+import type { AIProvider, AIMessage, ChatOptions, ChatResult, TokenUsage } from '../types.js';
 
 export class AnthropicProvider implements AIProvider {
   readonly name = 'anthropic';
@@ -25,7 +25,7 @@ export class AnthropicProvider implements AIProvider {
     };
   }
 
-  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<string> {
+  async chat(messages: AIMessage[], options: ChatOptions = {}): Promise<ChatResult> {
     const { system, messages: chatMessages } = this.separateSystemAndMessages(messages);
 
     const body: Record<string, unknown> = {
@@ -52,15 +52,24 @@ export class AnthropicProvider implements AIProvider {
 
     const data = (await response.json()) as {
       content: Array<{ type: string; text: string }>;
+      usage?: { input_tokens: number; output_tokens: number };
     };
-    return data.content.find((b) => b.type === 'text')?.text ?? '';
+    const usage: TokenUsage | undefined = data.usage
+      ? {
+          promptTokens: data.usage.input_tokens,
+          completionTokens: data.usage.output_tokens,
+          totalTokens: data.usage.input_tokens + data.usage.output_tokens,
+        }
+      : undefined;
+    const content = data.content.find((b) => b.type === 'text')?.text ?? '';
+    return { content, usage };
   }
 
   async streamChat(
     messages: AIMessage[],
     options: ChatOptions = {},
     onChunk?: (chunk: string) => void
-  ): Promise<string> {
+  ): Promise<ChatResult> {
     const { system, messages: chatMessages } = this.separateSystemAndMessages(messages);
 
     const body: Record<string, unknown> = {
@@ -87,6 +96,8 @@ export class AnthropicProvider implements AIProvider {
     }
 
     let full = '';
+    let promptTokens = 0;
+    let completionTokens = 0;
     const reader = response.body!.getReader();
     const decoder = new TextDecoder();
 
@@ -103,7 +114,12 @@ export class AnthropicProvider implements AIProvider {
           const parsed = JSON.parse(payload) as {
             type: string;
             delta?: { type: string; text?: string };
+            usage?: { input_tokens: number; output_tokens: number };
           };
+          if (parsed.usage) {
+            promptTokens = parsed.usage.input_tokens;
+            completionTokens = parsed.usage.output_tokens;
+          }
           if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
             const chunk = parsed.delta.text ?? '';
             if (chunk) {
@@ -117,6 +133,14 @@ export class AnthropicProvider implements AIProvider {
       }
     }
 
-    return full;
+    const usage: TokenUsage | undefined =
+      promptTokens || completionTokens
+        ? {
+            promptTokens,
+            completionTokens,
+            totalTokens: promptTokens + completionTokens,
+          }
+        : undefined;
+    return { content: full, usage };
   }
 }

@@ -64,12 +64,25 @@ export interface UserContext {
   reviews?: { lastDailyScore?: number; weeklyAvgScore?: number; streak?: number; recentMood?: string };
 }
 
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 interface AIState {
   conversations: Conversation[];
   activeConversationId: string | null;
   activeRole: CoachRole;
   isStreaming: boolean;
   streamingContent: string;
+
+  personalityOverrides: Record<CoachRole, string>;
+  tokenUsage: {
+    total: number;
+    byRole: Record<CoachRole, number>;
+    lastUsage: TokenUsage | null;
+  };
 
   dailyRecommendations: Recommendation[] | null;
   morningBriefing: string | null;
@@ -91,6 +104,10 @@ interface AIState {
   setWeeklyRecommendations: (recs: Recommendation[], digest: string) => void;
   setWeaknesses: (w: WeaknessReport[]) => void;
   setGoalAnalyses: (a: GoalAnalysis[]) => void;
+  setPersonalityOverride: (role: CoachRole, text: string) => void;
+  resetPersonalityOverrides: () => void;
+  addTokenUsage: (role: CoachRole, usage: TokenUsage) => void;
+  resetTokenUsage: () => void;
 }
 
 function generateId() {
@@ -105,6 +122,18 @@ export const useAIStore = create<AIState>()(
       activeRole: 'achievement',
       isStreaming: false,
       streamingContent: '',
+      personalityOverrides: {
+        achievement: '',
+        academic: '',
+        startup: '',
+        chess: '',
+        guitar: '',
+      },
+      tokenUsage: {
+        total: 0,
+        byRole: { achievement: 0, academic: 0, startup: 0, chess: 0, guitar: 0 },
+        lastUsage: null,
+      },
       dailyRecommendations: null,
       morningBriefing: null,
       weeklyRecommendations: null,
@@ -203,6 +232,44 @@ export const useAIStore = create<AIState>()(
 
       setWeaknesses: (w) => set({ weaknesses: w }),
       setGoalAnalyses: (a) => set({ goalAnalyses: a }),
+
+      setPersonalityOverride: (role, text) =>
+        set((s) => ({
+          personalityOverrides: { ...s.personalityOverrides, [role]: text },
+        })),
+
+      resetPersonalityOverrides: () =>
+        set({
+          personalityOverrides: {
+            achievement: '',
+            academic: '',
+            startup: '',
+            chess: '',
+            guitar: '',
+          },
+        }),
+
+      addTokenUsage: (role, usage) =>
+        set((s) => {
+          const byRole = { ...s.tokenUsage.byRole };
+          byRole[role] = (byRole[role] ?? 0) + usage.totalTokens;
+          return {
+            tokenUsage: {
+              total: s.tokenUsage.total + usage.totalTokens,
+              byRole,
+              lastUsage: usage,
+            },
+          };
+        }),
+
+      resetTokenUsage: () =>
+        set({
+          tokenUsage: {
+            total: 0,
+            byRole: { achievement: 0, academic: 0, startup: 0, chess: 0, guitar: 0 },
+            lastUsage: null,
+          },
+        }),
     }),
     {
       name: 'ascend-ai-storage',
@@ -215,6 +282,8 @@ export const useAIStore = create<AIState>()(
         weeklyDigest: s.weeklyDigest,
         weaknesses: s.weaknesses,
         goalAnalyses: s.goalAnalyses,
+        personalityOverrides: s.personalityOverrides,
+        tokenUsage: s.tokenUsage,
       }),
     }
   )

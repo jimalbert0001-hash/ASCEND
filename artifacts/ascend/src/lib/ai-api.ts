@@ -28,24 +28,30 @@ export async function checkProviderStatus(): Promise<{
 export async function sendChatMessage(
   messages: AIMessage[],
   role: CoachRole,
-  userId: string
-): Promise<string> {
-  const res = await apiFetch('/chat', { messages, role, userId, stream: false });
+  userId: string,
+  personalityOverride?: string
+): Promise<{ content: string; usage?: { promptTokens: number; completionTokens: number; totalTokens: number } }> {
+  const res = await apiFetch('/chat', { messages, role, userId, stream: false, personalityOverride });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
   }
-  const data = await res.json() as { content: string };
-  return data.content;
+  const data = await res.json() as {
+    content: string;
+    usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+  };
+  return { content: data.content, usage: data.usage };
 }
 
 export async function sendChatMessageStream(
   messages: AIMessage[],
   role: CoachRole,
   userId: string,
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
+  personalityOverride?: string,
+  onUsage?: (usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => void
 ): Promise<void> {
-  const res = await apiFetch('/chat', { messages, role, userId, stream: true });
+  const res = await apiFetch('/chat', { messages, role, userId, stream: true, personalityOverride });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -65,9 +71,14 @@ export async function sendChatMessageStream(
       const payload = line.slice(6).trim();
       if (payload === '[DONE]') return;
       try {
-        const parsed = JSON.parse(payload) as { chunk?: string; error?: string };
+        const parsed = JSON.parse(payload) as {
+          chunk?: string;
+          error?: string;
+          usage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+        };
         if (parsed.error) throw new Error(parsed.error);
         if (parsed.chunk) onChunk(parsed.chunk);
+        if (parsed.usage && onUsage) onUsage(parsed.usage);
       } catch (e) {
         if (e instanceof SyntaxError) continue;
         throw e;

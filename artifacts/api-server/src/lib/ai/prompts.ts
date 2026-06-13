@@ -133,11 +133,15 @@ function formatContext(context: UserContext, role: CoachRole): string {
   return sections.join('\n\n');
 }
 
-export function buildSystemPrompt(role: CoachRole, context: UserContext): string {
+export function buildSystemPrompt(role: CoachRole, context: UserContext, personalityOverride?: string): string {
   const contextStr = formatContext(context, role);
-  return `${BASE_PERSONA}
+  const rolePersona = ROLE_PERSONAS[role];
 
-${ROLE_PERSONAS[role]}
+  const personalityBlock = personalityOverride
+    ? `PERSONALITY OVERRIDE (user-specified):\n${personalityOverride}`
+    : `${BASE_PERSONA}\n\n${rolePersona}`;
+
+  return `${personalityBlock}
 
 --- USER CONTEXT ---
 ${contextStr}

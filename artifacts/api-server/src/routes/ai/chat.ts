@@ -13,7 +13,7 @@ router.get('/status', (_req, res) => {
 });
 
 router.post('/chat', async (req, res) => {
-  const { messages, role, userId, context: clientContext, stream = false } = req.body as ChatRequest & { userId?: string; context?: UserContext };
+  const { messages, role, userId, context: clientContext, stream = false, personalityOverride } = req.body as ChatRequest & { userId?: string; context?: UserContext };
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: 'messages array is required' });
@@ -45,7 +45,7 @@ router.post('/chat', async (req, res) => {
     return;
   }
 
-  const systemPrompt = buildSystemPrompt(role, context);
+  const systemPrompt = buildSystemPrompt(role, context, personalityOverride);
   const allMessages = [{ role: 'system' as const, content: systemPrompt }, ...messages];
 
   if (stream) {
@@ -55,23 +55,29 @@ router.post('/chat', async (req, res) => {
     res.flushHeaders();
 
     try {
-      await provider.streamChat(allMessages, {}, (chunk) => {
-        res.write(`data: ${JSON.stringify({ chunk })}\n\n`);
+      const result = await provider.streamChat(allMessages, {}, (chunk) => {
+        res.write(`data: ${JSON.stringify({ chunk })}
+\n`);
       });
+      if (result.usage) {
+        res.write(`data: ${JSON.stringify({ usage: result.usage })}
+\n`);
+      }
       res.write('data: [DONE]\n\n');
       res.end();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(err, 'AI stream error');
-      res.write(`data: ${JSON.stringify({ error: msg })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: msg })}
+\n`);
       res.end();
     }
     return;
   }
 
   try {
-    const content = await provider.chat(allMessages);
-    res.json({ content, provider: provider.name });
+    const result = await provider.chat(allMessages);
+    res.json({ content: result.content, provider: provider.name, usage: result.usage });
   } catch (err) {
     logger.error(err, 'AI chat error');
     res.status(500).json({ error: 'AI request failed', detail: String(err) });

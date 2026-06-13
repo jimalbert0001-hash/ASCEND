@@ -66,6 +66,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     activeConversationId,
     activeRole,
     isStreaming,
+    personalityOverrides,
     setActiveRole,
     newConversation,
     addMessage,
@@ -74,6 +75,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setIsStreaming,
     setStreamingContent,
     setActiveConversation,
+    addTokenUsage,
   } = useAIStore();
 
   const [input, setInput] = useState('');
@@ -119,11 +121,19 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setStreamingContent('');
 
     try {
-      await sendChatMessageStream(history, activeRole, userId, (chunk) => {
-        if (!ac.signal.aborted) {
-          appendStreamChunk(convId, chunk);
-        }
-      });
+      const personality = personalityOverrides[activeRole] || undefined;
+      await sendChatMessageStream(
+        history,
+        activeRole,
+        userId,
+        (chunk) => {
+          if (!ac.signal.aborted) {
+            appendStreamChunk(convId, chunk);
+          }
+        },
+        personality,
+        (usage) => addTokenUsage(activeRole, usage)
+      );
     } catch (err) {
       if (!ac.signal.aborted) {
         addMessage(convId, {
@@ -143,12 +153,14 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     isStreaming,
     activeRole,
     userId,
+    personalityOverrides,
     ensureConversation,
     addMessage,
     appendStreamChunk,
     finalizeStream,
     setIsStreaming,
     setStreamingContent,
+    addTokenUsage,
   ]);
 
   const handleStop = () => {
