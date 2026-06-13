@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { BookOpen, Clock, TrendingUp, Target, ChevronRight, Plus, Calendar, Zap, Award } from "lucide-react";
+import { BookOpen, Clock, TrendingUp, Target, ChevronRight, Plus, Calendar, Zap, Award, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { subjectsData, studySessionsData, getSubjectStats, getTotalStats } from "@/lib/academics-data";
-import { createStudySession } from "@/lib/academics-supabase";
+import { subjectsData, getSubjectStats, getTotalStats } from "@/lib/academics-data";
+import { logStudySession, fetchAcademicsData } from "@/lib/log-api";
+import { useAuthStore } from "@/stores/auth.store";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
 const fadeUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -61,7 +62,22 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: any; label: string;
   );
 }
 
-function LogSessionModal({ open, onClose, defaultSubjectId }: { open: boolean; onClose: () => void; defaultSubjectId?: string }) {
+interface DBSession {
+  id: string;
+  subjectId: string | null;
+  chapterId: string | null;
+  durationMins: number | null;
+  sessionType: string;
+  focusScore: number | null;
+  notes: string | null;
+  startedAt: string;
+}
+
+function LogSessionModal({
+  open, onClose, defaultSubjectId, userId, onSaved,
+}: {
+  open: boolean; onClose: () => void; defaultSubjectId?: string; userId: string; onSaved: () => void;
+}) {
   const [subjectId, setSubjectId] = useState(defaultSubjectId ?? 'phy');
   const [chapterId, setChapterId] = useState('__all__');
   const [duration, setDuration] = useState('60');
@@ -69,19 +85,33 @@ function LogSessionModal({ open, onClose, defaultSubjectId }: { open: boolean; o
   const [focus, setFocus] = useState('4');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const subject = subjectsData.find(s => s.id === subjectId);
 
   async function handleSave() {
     setSaving(true);
-    await createStudySession({
-      subjectId, chapterId: chapterId === '__all__' ? null : chapterId,
-      date: new Date().toISOString().split('T')[0],
-      durationMins: parseInt(duration), sessionType: type,
-      focusScore: parseInt(focus) as 1 | 2 | 3 | 4 | 5, notes,
-    });
-    setSaving(false);
-    onClose();
+    try {
+      await logStudySession({
+        userId,
+        subjectId: subjectId || undefined,
+        chapterId: chapterId === '__all__' ? undefined : chapterId,
+        durationMins: parseInt(duration) || 60,
+        sessionType: type,
+        focusScore: parseInt(focus) as 1 | 2 | 3 | 4 | 5,
+        notes,
+      });
+      setSaved(true);
+      setTimeout(() => {
+        setSaved(false);
+        onSaved();
+        onClose();
+      }, 800);
+    } catch (err) {
+      console.error('Failed to save session', err);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -92,7 +122,7 @@ function LogSessionModal({ open, onClose, defaultSubjectId }: { open: boolean; o
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs mb-1.5 block">Subject</Label>
-              <Select value={subjectId} onValueChange={setSubjectId}>
+              <Select value={subjectId} onValueChange={v => { setSubjectId(v); setChapterId('__all__'); }}>
                 <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {subjectsData.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -127,7 +157,7 @@ function LogSessionModal({ open, onClose, defaultSubjectId }: { open: boolean; o
               </Select>
             </div>
             <div>
-              <Label className="text-xs mb-1.5 block">Focus (1-5)</Label>
+              <Label className="text-xs mb-1.5 block">Focus (1–5)</Label>
               <Select value={focus} onValueChange={setFocus}>
                 <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -142,7 +172,9 @@ function LogSessionModal({ open, onClose, defaultSubjectId }: { open: boolean; o
           </div>
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="flex-1">{saving ? 'Saving...' : 'Log Session'}</Button>
+            <Button onClick={handleSave} disabled={saving || saved} className="flex-1 gap-2">
+              {saved ? <><CheckCircle2 className="w-4 h-4" />Saved!</> : saving ? 'Saving…' : 'Log Session'}
+            </Button>
           </div>
         </div>
       </DialogContent>
@@ -153,10 +185,32 @@ function LogSessionModal({ open, onClose, defaultSubjectId }: { open: boolean; o
 export function AcademicsOverview() {
   const [logModal, setLogModal] = useState(false);
   const [logSubject, setLogSubject] = useState<string | undefined>();
+  const [dbSessions, setDbSessions] = useState<DBSession[]>([]);
+  const [dbTotalHours, setDbTotalHours] = useState<number | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  const userId = useAuthStore(s => s.user?.id) ?? 'mock-user-1';
+
   const stats = getTotalStats();
   const boardScore500 = Math.round((stats.avgCompletion * 0.4 + stats.avgMockScore * 0.6) / 100 * 500);
   const boardPct = Math.round(boardScore500 / 5);
   const boardColor = boardPct >= 80 ? '#22c55e' : boardPct >= 70 ? '#f59e0b' : '#ef4444';
+
+  async function loadData() {
+    try {
+      const data = await fetchAcademicsData(userId);
+      setDbSessions(data.sessions ?? []);
+      setDbTotalHours(data.totalHours ?? null);
+    } catch (err) {
+      console.error('Failed to load academics data', err);
+    } finally {
+      setLoadingData(false);
+    }
+  }
+
+  useEffect(() => { loadData(); }, [userId]);
+
+  const displayHours = dbTotalHours !== null ? dbTotalHours : stats.totalHours;
+  const recentSessions = dbSessions.slice(0, 6);
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-6xl mx-auto">
@@ -175,15 +229,13 @@ export function AcademicsOverview() {
         </Button>
       </motion.header>
 
-      {/* Hero Stats */}
       <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={Clock} label="Hours Studied" value={`${stats.totalHours}h`} sub="This semester" />
+        <StatCard icon={Clock} label="Hours Studied" value={`${displayHours}h`} sub="All sessions" />
         <StatCard icon={Target} label="Completion" value={`${stats.avgCompletion}%`} sub="Avg across subjects" />
         <StatCard icon={TrendingUp} label="Mock Average" value={`${stats.avgMockScore}%`} sub="Last 7 tests" />
         <StatCard icon={Calendar} label="Days to Boards" value={stats.daysUntilBoards} sub="March 2027" />
       </motion.div>
 
-      {/* Predicted Score */}
       <motion.div variants={fadeUp} initial="initial" animate="animate">
         <Card className="p-6 border-border/50 bg-card/60 backdrop-blur">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
@@ -216,7 +268,6 @@ export function AcademicsOverview() {
         </Card>
       </motion.div>
 
-      {/* Subject Cards */}
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Subjects</h3>
@@ -231,8 +282,7 @@ export function AcademicsOverview() {
             const ringColor = SUBJECT_RING[subject.color];
             return (
               <motion.div key={subject.id} variants={fadeUp}>
-                <Card className={`p-5 border bg-card/60 backdrop-blur hover:border-${subject.color}-500/40 transition-all hover:shadow-lg hover:shadow-${subject.color}-500/5 group cursor-pointer`}
-                  onClick={() => {}}>
+                <Card className={`p-5 border bg-card/60 backdrop-blur hover:border-${subject.color}-500/40 transition-all hover:shadow-lg hover:shadow-${subject.color}-500/5 group cursor-pointer`}>
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <span className={`text-xs font-bold px-2 py-0.5 rounded border ${colorClass}`}>{subject.code}</span>
@@ -244,7 +294,6 @@ export function AcademicsOverview() {
                       <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{s.completionPct}%</span>
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-2 text-xs mb-4">
                     <div className="bg-muted/20 rounded-lg p-2">
                       <p className="text-muted-foreground">Hours</p>
@@ -259,14 +308,12 @@ export function AcademicsOverview() {
                       </div>
                     </div>
                   </div>
-
                   {s.dueRevisions > 0 && (
                     <div className="flex items-center gap-1.5 mb-3">
                       <Zap className="w-3.5 h-3.5 text-amber-400" />
                       <span className="text-xs text-amber-400 font-medium">{s.dueRevisions} revision{s.dueRevisions > 1 ? 's' : ''} due</span>
                     </div>
                   )}
-
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1 text-xs h-8"
                       onClick={e => { e.stopPropagation(); setLogSubject(subject.id); setLogModal(true); }}>
@@ -285,38 +332,62 @@ export function AcademicsOverview() {
         </motion.div>
       </div>
 
-      {/* Recent Activity */}
       <motion.div variants={fadeUp} initial="initial" animate="animate">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Recent Sessions</h3>
+          <h3 className="text-lg font-semibold">
+            Recent Sessions
+            {!loadingData && dbSessions.length > 0 && (
+              <span className="ml-2 text-xs text-primary font-normal bg-primary/10 px-2 py-0.5 rounded-full">
+                {dbSessions.length} logged
+              </span>
+            )}
+          </h3>
           <Link href="/academics/analytics" className="text-sm text-primary hover:underline flex items-center gap-1">
             Analytics <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
         <Card className="border-border/50 bg-card/60 backdrop-blur divide-y divide-border/30">
-          {studySessionsData.slice(0, 6).map((session, i) => {
-            const subject = subjectsData.find(s => s.id === session.subjectId);
-            const chapter = subject?.chapters.find(c => c.id === session.chapterId);
-            const colorClass = SUBJECT_COLORS[subject?.color ?? 'blue'];
+          {loadingData ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">Loading sessions…</div>
+          ) : recentSessions.length === 0 ? (
+            <div className="p-8 text-center">
+              <BookOpen className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No sessions yet. Log your first study session above.</p>
+            </div>
+          ) : recentSessions.map((session) => {
+            const subjectEntry = subjectsData.find(s => s.id === session.subjectId);
+            const chapter = subjectEntry?.chapters.find(c => c.id === session.chapterId);
+            const colorClass = SUBJECT_COLORS[subjectEntry?.color ?? 'blue'];
+            const sessionDate = new Date(session.startedAt);
+            const now = new Date();
+            const diffDays = Math.floor((now.getTime() - sessionDate.getTime()) / 86400000);
+            const dateLabel = diffDays === 0 ? 'Today' : diffDays === 1 ? 'Yesterday' : `${diffDays}d ago`;
             return (
               <div key={session.id} className="flex items-center gap-4 p-4">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{chapter?.name ?? subject?.name ?? 'Study session'}</p>
-                  <p className="text-xs text-muted-foreground">{SESSION_LABEL[session.sessionType]} · {session.durationMins} min · Focus {session.focusScore}/5</p>
+                  <p className="text-sm font-medium truncate">{chapter?.name ?? subjectEntry?.name ?? 'Study session'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {SESSION_LABEL[session.sessionType] ?? session.sessionType} · {session.durationMins ?? '?'} min
+                    {session.focusScore ? ` · Focus ${session.focusScore}/5` : ''}
+                  </p>
                 </div>
-                <div className="text-xs text-muted-foreground shrink-0">
-                  {session.date === new Date().toISOString().split('T')[0] ? 'Today' : `${Math.ceil((new Date().getTime() - new Date(session.date).getTime()) / 86400000)}d ago`}
-                </div>
+                <div className="text-xs text-muted-foreground shrink-0">{dateLabel}</div>
               </div>
             );
           })}
         </Card>
       </motion.div>
 
-      <LogSessionModal open={logModal} onClose={() => { setLogModal(false); setLogSubject(undefined); }} defaultSubjectId={logSubject} />
+      <LogSessionModal
+        open={logModal}
+        onClose={() => { setLogModal(false); setLogSubject(undefined); }}
+        defaultSubjectId={logSubject}
+        userId={userId}
+        onSaved={loadData}
+      />
     </div>
   );
 }
