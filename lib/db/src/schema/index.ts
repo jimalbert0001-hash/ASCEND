@@ -11,3 +11,4 @@ export * from "./chess_games";
 export * from "./guitar";
 export * from "./achievements";
 export * from "./reviews";
+export * from "./ai_conversations";
