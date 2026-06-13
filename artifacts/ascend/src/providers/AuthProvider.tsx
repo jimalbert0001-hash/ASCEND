@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuthStore } from '../stores/auth.store';
 import { User, Session } from '@supabase/supabase-js';
 import { sampleData } from '../lib/sample-data';
@@ -24,10 +24,10 @@ export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user, session, loading, setUser, setSession, setLoading } = useAuthStore();
-  const isMockUrl = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL.includes('placeholder.supabase.co');
+  const isMock = !isSupabaseConfigured;
 
   useEffect(() => {
-    if (isMockUrl) {
+    if (isMock) {
       // Mock Auth State
       setUser({ id: 'mock-user-1', email: sampleData.user.email, user_metadata: { name: sampleData.user.name } } as unknown as User);
       setSession({ access_token: 'mock-token', user: { id: 'mock-user-1' } } as Session);
@@ -48,15 +48,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [isMockUrl, setSession, setUser, setLoading]);
+  }, [isMock, setSession, setUser, setLoading]);
 
   const signOut = async () => {
-    if (isMockUrl) return;
+    if (isMock) return;
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, isMock: isMockUrl }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut, isMock }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,10 +1,10 @@
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import {
   projectsData, ideasData, roadmapData, featuresData, bugsData, milestonesData, revenueData, userMetricsData,
   StartupProject, IdeaVaultItem, RoadmapItem, Feature, BugReport, LaunchMilestone, RevenueEntry, UserMetricEntry,
 } from './startup-data';
 
-const isMock = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+const isMock = !isSupabaseConfigured;
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 

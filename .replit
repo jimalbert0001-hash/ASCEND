@@ -13,6 +13,11 @@ PORT = "5000"
 BASE_PATH = "/"
 NODE_ENV = "development"
 API_PORT = "3001"
+VITE_SUPABASE_URL = "https://gkqhhudoiibopzhqfixj.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcWhodWRvaWlib3B6aHFmaXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjkzNTcsImV4cCI6MjA5NjkwNTM1N30.-HqbFzs-AO3ETLnVXwGrRq6kGnKYxBBgDclc4Q-Qv1s"
+SUPABASE_URL = "https://gkqhhudoiibopzhqfixj.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcWhodWRvaWlib3B6aHFmaXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjkzNTcsImV4cCI6MjA5NjkwNTM1N30.-HqbFzs-AO3ETLnVXwGrRq6kGnKYxBBgDclc4Q-Qv1s"
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrcWhodWRvaWlib3B6aHFmaXhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTMyOTM1NywiZXhwIjoyMDk2OTA1MzU3fQ.-HqbFzs-AO3ETLnVXwGrRq6kGnKYxBBgDclc4Q-Qv1s"
 
 [workflows]
 runButton = "Project"

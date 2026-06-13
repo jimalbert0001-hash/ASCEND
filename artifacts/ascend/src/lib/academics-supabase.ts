@@ -1,7 +1,7 @@
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import { subjectsData, studySessionsData, mockTestsData, Subject, Chapter, StudySession, MockTest } from './academics-data';
 
-const isMock = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+const isMock = !isSupabaseConfigured;
 
 export async function getSubjects(userId: string): Promise<Subject[]> {
   if (isMock) return subjectsData;

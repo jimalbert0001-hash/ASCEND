@@ -1,10 +1,10 @@
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import {
   ratingHistory, puzzleSessions, openingsData, endgameStudies, tournamentsData, trainingSessions, gameNotes,
   RatingEntry, PuzzleSession, ChessOpening, EndgameStudy, Tournament, TrainingSession, GameNote,
 } from './chess-data';
 
-const isMock = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+const isMock = !isSupabaseConfigured;
 
 // ─── Rating ───────────────────────────────────────────────────────────────────
 

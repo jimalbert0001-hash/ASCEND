@@ -1,10 +1,10 @@
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import {
   practiceSessions, songsData, chordsData, scalesData, theoryLessons, recordings, skillAreas,
   PracticeSession, Song, ChordProgress, ScaleProgress, TheoryLesson, RecordingEntry, SkillArea,
 } from './guitar-data';
 
-const isMock = !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL === '';
+const isMock = !isSupabaseConfigured;
 
 // ─── Practice Sessions ────────────────────────────────────────────────────────
 
