@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { MessageBubble } from './MessageBubble';
-import { CoachSelector } from './CoachSelector';
+import { CoachSelector, COACHES } from './CoachSelector';
 import { useAIStore, type CoachRole } from '@/stores/ai.store';
 import { sendChatMessageStream, checkProviderStatus } from '@/lib/ai-api';
 import type { AIMessage } from '@/lib/ai-api';
@@ -194,9 +194,15 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     <div className="flex flex-col h-full">
       <div className="flex-shrink-0 border-b border-border px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Bot className="w-4 h-4 text-primary" />
-          </div>
+          {(() => {
+            const coach = COACHES.find((c) => c.role === activeRole);
+            const Icon = coach?.icon ?? Bot;
+            return (
+              <div className={cn("w-8 h-8 rounded-full border flex items-center justify-center", coach?.bg ?? 'bg-primary/10 border-primary/20')}>
+                <Icon className={cn("w-4 h-4", coach?.color ?? 'text-primary')} />
+              </div>
+            );
+          })()}
           <div>
             <p className="text-sm font-semibold">{ROLE_LABELS[activeRole]}</p>
             {providerStatus && (
@@ -236,9 +242,15 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-center space-y-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Bot className="w-7 h-7 text-primary" />
-            </div>
+            {(() => {
+              const coach = COACHES.find((c) => c.role === activeRole);
+              const Icon = coach?.icon ?? Bot;
+              return (
+                <div className={cn("w-16 h-16 rounded-full border flex items-center justify-center", coach?.bg ?? 'bg-primary/10 border-primary/20')}>
+                  <Icon className={cn("w-7 h-7", coach?.color ?? 'text-primary')} />
+                </div>
+              );
+            })()}
             <div>
               <h3 className="font-semibold text-lg mb-1">{ROLE_LABELS[activeRole]}</h3>
               <p className="text-sm text-muted-foreground max-w-xs">
