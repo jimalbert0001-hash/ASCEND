@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "pnpm run vercel-build",
-  "outputDirectory": "dist",
+  "outputDirectory": "artifacts/ascend/dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
