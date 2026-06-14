@@ -1,3 +1,5 @@
 {
-  "outputDirectory": "dist"
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "artifacts/mockup-sandbox/dist",
+  "installCommand": "pnpm install"
 }
