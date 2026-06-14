@@ -1,4 +1,7 @@
 {
+  "buildCommand": "pnpm --filter @workspace/ascend run build",
+  "outputDirectory": "dist",
+  "installCommand": "pnpm install",
   "rewrites": [
     {
       "source": "/api/:path*",
