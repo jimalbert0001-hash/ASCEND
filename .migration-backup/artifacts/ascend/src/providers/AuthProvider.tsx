@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
 interface AuthUser {
   id: string;
   email?: string;
@@ -26,7 +28,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/user', { credentials: 'include' })
+    const url = `${API_BASE_URL}/api/auth/user`;
+    fetch(url, { credentials: 'include' })
       .then((res) => {
         if (res.ok) return res.json();
         return null;
@@ -39,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = () => {
-    window.location.href = '/api/logout';
+    window.location.href = `${API_BASE_URL}/api/logout`;
   };
 
   return (

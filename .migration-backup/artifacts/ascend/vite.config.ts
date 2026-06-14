@@ -10,6 +10,7 @@ const basePath = process.env.BASE_PATH || "/";
 export default defineConfig({
   base: basePath,
   define: {
+    "import.meta.env.VITE_API_BASE_URL": JSON.stringify(process.env.VITE_API_BASE_URL || ""),
     "import.meta.env.SUPABASE_URL": JSON.stringify(process.env.SUPABASE_DB_URL),
     "import.meta.env.SUPABASE_ANON_KEY": JSON.stringify(process.env.SUPABASE_ANON_KEY),
   },
@@ -42,6 +43,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            return "vendor";
+          }
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     port,

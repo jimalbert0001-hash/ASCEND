@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <h1 className="text-2xl font-bold tracking-tight">ASCEND</h1>
         <p className="text-muted-foreground text-sm">Sign in to access your dashboard</p>
         <a
-          href="/api/login"
+          href={`${import.meta.env.VITE_API_BASE_URL || ''}/api/login`}
           className="inline-flex items-center justify-center px-6 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors"
         >
           Log in

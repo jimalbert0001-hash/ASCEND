@@ -10,7 +10,7 @@ export function LoginPage() {
           <p className="text-muted-foreground text-sm">Your Personal Achievement Operating System</p>
         </div>
         <a
-          href="/api/login"
+          href={`${import.meta.env.VITE_API_BASE_URL || ''}/api/login`}
           className="block w-full py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors text-center"
         >
           Log in
