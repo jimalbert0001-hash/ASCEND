@@ -1,19 +1,17 @@
 {
   "version": 2,
+  "buildCommand": "node ./build.mjs",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "builds": [
     {
-      "src": "artifacts/api-server/dist/index.mjs",
+      "src": "dist/vercel.mjs",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "artifacts/api-server/dist/index.mjs"
-    },
-    {
-      "src": "/health",
-      "dest": "artifacts/api-server/dist/index.mjs"
+      "src": "/(.*)",
+      "dest": "dist/vercel.mjs"
     }
   ]
 }
