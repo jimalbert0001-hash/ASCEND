@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '../lib/supabase.js';
 const router = Router();
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://ascend-frontend-git-main-ascend-v1.vercel.app';
-const API_URL = process.env.API_URL || 'https://ascend-api-server.vercel.app';
+const API_URL = process.env.API_URL || 'http://localhost:3000';
 
 router.get('/login', async (req, res) => {
   const supabase = createSupabaseServerClient(req, res);
