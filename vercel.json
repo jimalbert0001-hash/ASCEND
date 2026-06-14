@@ -1,7 +1,7 @@
 {
   "version": 2,
   "buildCommand": "pnpm -r --if-present run build",
-  "outputDirectory": "dist",
+  "outputDirectory": ".migration-backup/dist",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
