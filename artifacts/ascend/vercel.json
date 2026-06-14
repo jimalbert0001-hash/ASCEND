@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pnpm --filter @workspace/ascend run build",
-  "outputDirectory": "dist",
+  "buildCommand": "cd artifacts/ascend && pnpm install && pnpm run build",
+  "outputDirectory": "artifacts/ascend/dist",
   "installCommand": "pnpm install",
   "rewrites": [
     {
