@@ -1,6 +1,6 @@
 {
-  "buildCommand": "cd artifacts/ascend && pnpm install && pnpm run build",
-  "outputDirectory": "artifacts/ascend/dist",
+  "buildCommand": "pnpm run build",
+  "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "rewrites": [
     {
