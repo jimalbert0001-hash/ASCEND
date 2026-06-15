@@ -38,36 +38,20 @@ app.get('/api/healthz', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/api/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     res.status(500).json({ error: 'Supabase not configured' });
     return;
   }
-  const supabase = makeSupabase(req, res);
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${API_URL}/api/auth/callback`,
-      skipBrowserRedirect: true,
-    },
-  });
-  if (error || !data.url) {
-    res.status(500).json({ error: 'Failed to generate login URL' });
-    return;
-  }
-  res.redirect(data.url);
-});
-
-app.get('/api/auth/callback', async (req, res) => {
-  const code = req.query['code'];
-  if (!code) {
-    res.redirect(`${FRONTEND_URL}/login?error=no_code`);
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).json({ error: 'Email and password are required' });
     return;
   }
   const supabase = makeSupabase(req, res);
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.session) {
-    res.redirect(`${FRONTEND_URL}/login?error=auth_failed`);
+    res.status(401).json({ error: 'Invalid email or password' });
     return;
   }
   res.cookie('sb-access-token', data.session.access_token, {
@@ -76,7 +60,7 @@ app.get('/api/auth/callback', async (req, res) => {
   res.cookie('sb-refresh-token', data.session.refresh_token, {
     httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/',
   });
-  res.redirect(FRONTEND_URL);
+  res.json({ ok: true });
 });
 
 app.get('/api/auth/user', async (req, res) => {
