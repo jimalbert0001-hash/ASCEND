@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { subjectsData, Chapter, Formula, getSubjectStats } from "@/lib/academics-data";
 import { createStudySession, getSubjects } from "@/lib/academics-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, any> = { Atom, FlaskConical, Calculator, Book, Terminal, BookOpen };
@@ -190,7 +191,7 @@ export function SubjectsPage() {
   const initialSubject = params.get('subject') ?? subjectsData[0].id;
   const [activeId, setActiveId] = useState(initialSubject);
   const [logModal, setLogModal] = useState(false);
-  const [subjects, setSubjects] = useState(subjectsData);
+  const [subjects, setSubjects] = useState(() => isDataCleared() ? [] : subjectsData);
   const { user } = useAuth();
   const userId = user?.id ?? 'mock-user-1';
 

@@ -18,14 +18,15 @@ import {
 } from "@/lib/guitar-data";
 import { createPracticeSession, deletePracticeSession, createRecording, deleteRecording, updateTheoryLesson, getPracticeSessions, getRecordings, getTheoryLessons } from "@/lib/guitar-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const THEORY_STATUS_NEXT: Record<string, 'not_started' | 'in_progress' | 'completed'> = { not_started: 'in_progress', in_progress: 'completed', completed: 'not_started' };
 
 export function PracticePage() {
-  const [sessions, setSessions] = useState<PracticeSession[]>(initSessions);
-  const [recs, setRecs] = useState<RecordingEntry[]>(initRecordings);
-  const [lessons, setLessons] = useState<TheoryLesson[]>(initLessons);
+  const [sessions, setSessions] = useState<PracticeSession[]>(() => isDataCleared() ? [] : initSessions);
+  const [recs, setRecs] = useState<RecordingEntry[]>(() => isDataCleared() ? [] : initRecordings);
+  const [lessons, setLessons] = useState<TheoryLesson[]>(() => isDataCleared() ? [] : initLessons);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [recOpen, setRecOpen] = useState(false);
   const { user } = useAuth();

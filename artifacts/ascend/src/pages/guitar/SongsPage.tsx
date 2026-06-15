@@ -18,6 +18,7 @@ import {
 } from "@/lib/guitar-data";
 import { createSong, deleteSong, updateSong, updateChord, getSongs, getChords } from "@/lib/guitar-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const STATUS_LIST: SongStatus[] = ['wish_list', 'learning', 'repertoire', 'polished', 'on_hold'];
@@ -25,8 +26,8 @@ const STATUS_LABELS: Record<SongStatus, string> = { wish_list: 'Wish List', lear
 const defaultSong = { title: '', artist: '', genre: '', status: 'learning' as SongStatus, difficulty: 2 as 1 | 2 | 3 | 4 | 5, tempo: 80, chords: [] as string[], startDate: new Date().toISOString().slice(0, 10), notes: '' };
 
 export function SongsPage() {
-  const [songs, setSongs] = useState<Song[]>(initSongs);
-  const [chords, setChords] = useState<ChordProgress[]>(initChords);
+  const [songs, setSongs] = useState<Song[]>(() => isDataCleared() ? [] : initSongs);
+  const [chords, setChords] = useState<ChordProgress[]>(() => isDataCleared() ? [] : initChords);
   const [filter, setFilter] = useState<SongStatus | 'all'>('all');
   const [dlgOpen, setDlgOpen] = useState(false);
   const [form, setForm] = useState(defaultSong);

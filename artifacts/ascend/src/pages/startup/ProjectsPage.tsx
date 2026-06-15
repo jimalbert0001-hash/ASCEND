@@ -16,6 +16,7 @@ import {
 } from "@/lib/startup-data";
 import { createProject, updateProject, deleteProject, createIdea, updateIdea, deleteIdea, getProjects, getIdeas } from "@/lib/startup-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -244,8 +245,8 @@ function IdeaModal({ open, onClose, onSaved, initial }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export function ProjectsPage() {
-  const [projects, setProjects] = useState<StartupProject[]>(projectsData);
-  const [ideas, setIdeas] = useState<IdeaVaultItem[]>(ideasData);
+  const [projects, setProjects] = useState<StartupProject[]>(() => isDataCleared() ? [] : projectsData);
+  const [ideas, setIdeas] = useState<IdeaVaultItem[]>(() => isDataCleared() ? [] : ideasData);
   const [projectModal, setProjectModal] = useState(false);
   const [editProject, setEditProject] = useState<StartupProject | undefined>();
   const { user } = useAuth();

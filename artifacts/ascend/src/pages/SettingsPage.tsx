@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { fetchChessAccounts, saveChessAccounts } from "@/lib/chess-api";
 import { useStatsStore } from "@/stores/stats.store";
 import { useStreakStore } from "@/stores/streak.store";
+import { setDataCleared } from "@/lib/data-cleared";
 import { fetchGoals, saveGoals } from "@/lib/goals-api";
 import { EditableField } from "@/components/ui/EditableField";
 
@@ -131,6 +132,7 @@ export function SettingsPage() {
     resetStatsStore();
     resetStreakStore();
     resetAIStore();
+    setDataCleared();
     setResetConfirm(false);
     setResetDone(true);
     setTimeout(() => setResetDone(false), 3000);

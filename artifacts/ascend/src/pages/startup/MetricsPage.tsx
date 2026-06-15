@@ -18,6 +18,7 @@ import {
 } from "@/lib/startup-data";
 import { createMilestone, updateMilestone, getMilestones } from "@/lib/startup-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
 const fadeUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -181,7 +182,7 @@ const CustomTooltipUsers = ({ active, payload, label }: any) => {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export function MetricsPage() {
   const [selectedProject, setSelectedProject] = useState(projectsData[0].id);
-  const [milestones, setMilestones] = useState<LaunchMilestone[]>(milestonesData);
+  const [milestones, setMilestones] = useState<LaunchMilestone[]>(() => isDataCleared() ? [] : milestonesData);
   const [milestoneModal, setMilestoneModal] = useState(false);
   const [editMilestone, setEditMilestone] = useState<LaunchMilestone | undefined>();
   const { user } = useAuth();
@@ -195,8 +196,8 @@ export function MetricsPage() {
   }, [selectedProject]);
 
   const stats = getProjectStats(selectedProject);
-  const rev = revenueData.filter(r => r.projectId === selectedProject);
-  const users = userMetricsData.filter(u => u.projectId === selectedProject);
+  const rev = isDataCleared() ? [] : revenueData.filter(r => r.projectId === selectedProject);
+  const users = isDataCleared() ? [] : userMetricsData.filter(u => u.projectId === selectedProject);
   const projectMilestones = milestones.filter(m => m.projectId === selectedProject);
   const doneCount = projectMilestones.filter(m => m.status === 'done').length;
   const milestonePct = projectMilestones.length > 0 ? Math.round((doneCount / projectMilestones.length) * 100) : 0;

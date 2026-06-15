@@ -18,6 +18,7 @@ import {
 } from "@/lib/chess-data";
 import { createOpening, deleteOpening, updateOpening, createEndgameStudy, deleteEndgameStudy, updateEndgameStudy, getOpenings, getEndgameStudies } from "@/lib/chess-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const STATUS_CYCLE: OpeningStatus[] = ['learning', 'mastered', 'dropped'];
 const ENDGAME_CYCLE: EndgameStatus[] = ['not_started', 'in_progress', 'mastered'];
@@ -26,8 +27,8 @@ const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } }
 const defaultOp = { name: '', eco: '', color: 'white' as 'white' | 'black', moves: '', winRate: 50, gamesPlayed: 0, status: 'learning' as OpeningStatus, notes: '', tags: [] as string[] };
 
 export function OpeningsPage() {
-  const [openings, setOpenings] = useState<ChessOpening[]>(initOpenings);
-  const [endgames, setEndgames] = useState<EndgameStudy[]>(initEndgames);
+  const [openings, setOpenings] = useState<ChessOpening[]>(() => isDataCleared() ? [] : initOpenings);
+  const [endgames, setEndgames] = useState<EndgameStudy[]>(() => isDataCleared() ? [] : initEndgames);
   const [dlgOpen, setDlgOpen] = useState(false);
   const [form, setForm] = useState(defaultOp);
   const [tagsInput, setTagsInput] = useState('');

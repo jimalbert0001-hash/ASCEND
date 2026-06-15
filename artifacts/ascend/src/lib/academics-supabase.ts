@@ -1,10 +1,11 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isDataCleared } from './data-cleared';
 import { subjectsData, studySessionsData, mockTestsData, Subject, Chapter, StudySession, MockTest } from './academics-data';
 
 const isMock = !isSupabaseConfigured;
 
 export async function getSubjects(userId: string): Promise<Subject[]> {
-  if (isMock) return subjectsData;
+  if (isMock) return isDataCleared() ? [] : subjectsData;
   try {
     const { data, error } = await supabase.from('subjects').select('*, chapters(*, revisions(*))').eq('user_id', userId);
     if (error) throw error;
@@ -47,7 +48,7 @@ export async function createStudySession(userId: string, session: Omit<StudySess
 }
 
 export async function getStudySessions(userId: string, limit = 20): Promise<StudySession[]> {
-  if (isMock) return studySessionsData.slice(0, limit);
+  if (isMock) return isDataCleared() ? [] : studySessionsData.slice(0, limit);
   try {
     const { data, error } = await supabase.from('study_sessions').select('*').eq('user_id', userId).order('started_at', { ascending: false }).limit(limit);
     if (error) throw error;
@@ -76,7 +77,7 @@ export async function createMockTest(userId: string, test: Omit<MockTest, 'id'>)
 }
 
 export async function getMockTests(userId: string): Promise<MockTest[]> {
-  if (isMock) return mockTestsData;
+  if (isMock) return isDataCleared() ? [] : mockTestsData;
   try {
     const { data, error } = await supabase.from('mock_tests').select('*').eq('user_id', userId).order('test_date', { ascending: false });
     if (error) throw error;

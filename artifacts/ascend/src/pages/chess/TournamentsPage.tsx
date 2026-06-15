@@ -13,12 +13,13 @@ import { cn } from "@/lib/utils";
 import { Tournament, TournamentFormat, tournamentsData as initTournaments } from "@/lib/chess-data";
 import { createTournament, deleteTournament, getTournaments } from "@/lib/chess-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const defaultForm = { name: '', date: new Date().toISOString().slice(0, 10), format: 'rapid' as TournamentFormat, result: '', score: '', rounds: 5, ratingBefore: 1450, ratingAfter: 1450, location: '', notes: '' };
 
 export function TournamentsPage() {
-  const [tournaments, setTournaments] = useState<Tournament[]>(initTournaments);
+  const [tournaments, setTournaments] = useState<Tournament[]>(() => isDataCleared() ? [] : initTournaments);
   const [dlgOpen, setDlgOpen] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const { user } = useAuth();

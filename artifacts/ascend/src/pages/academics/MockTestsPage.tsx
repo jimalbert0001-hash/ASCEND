@@ -16,6 +16,7 @@ import {
 import { subjectsData, mockTestsData, MockTest } from "@/lib/academics-data";
 import { createMockTest, deleteMockTest, getMockTests } from "@/lib/academics-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 import { cn } from "@/lib/utils";
 
 const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
@@ -118,7 +119,7 @@ function TestModal({ open, onClose, onSaved }: { open: boolean; onClose: () => v
 }
 
 export function MockTestsPage() {
-  const [tests, setTests] = useState<MockTest[]>(mockTestsData);
+  const [tests, setTests] = useState<MockTest[]>(() => isDataCleared() ? [] : mockTestsData);
   const [modal, setModal] = useState(false);
   const { user } = useAuth();
   const userId = user?.id ?? 'mock-user-1';

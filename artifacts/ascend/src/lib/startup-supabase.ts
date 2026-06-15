@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isDataCleared } from './data-cleared';
 import {
   projectsData, ideasData, roadmapData, featuresData, bugsData, milestonesData, revenueData, userMetricsData,
   StartupProject, IdeaVaultItem, RoadmapItem, Feature, BugReport, LaunchMilestone, RevenueEntry, UserMetricEntry,
@@ -9,7 +10,7 @@ const isMock = !isSupabaseConfigured;
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
 export async function getProjects(userId: string): Promise<StartupProject[]> {
-  if (isMock) return projectsData;
+  if (isMock) return isDataCleared() ? [] : projectsData;
   try {
     const { data, error } = await supabase.from('startup_projects').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     if (error) throw error;
@@ -40,7 +41,7 @@ export async function deleteProject(id: string): Promise<void> {
 // ─── Ideas ────────────────────────────────────────────────────────────────────
 
 export async function getIdeas(userId: string): Promise<IdeaVaultItem[]> {
-  if (isMock) return ideasData;
+  if (isMock) return isDataCleared() ? [] : ideasData;
   try {
     const { data, error } = await supabase.from('startup_ideas').select('*').eq('user_id', userId).order('created_at', { ascending: false });
     if (error) throw error;
@@ -71,7 +72,7 @@ export async function deleteIdea(id: string): Promise<void> {
 // ─── Roadmap ──────────────────────────────────────────────────────────────────
 
 export async function getRoadmapItems(projectId: string): Promise<RoadmapItem[]> {
-  if (isMock) return roadmapData.filter(r => r.projectId === projectId);
+  if (isMock) return isDataCleared() ? [] : roadmapData.filter(r => r.projectId === projectId);
   try {
     const { data, error } = await supabase.from('startup_roadmap').select('*').eq('project_id', projectId);
     if (error) throw error;
@@ -102,7 +103,7 @@ export async function deleteRoadmapItem(id: string): Promise<void> {
 // ─── Features ─────────────────────────────────────────────────────────────────
 
 export async function getFeatures(projectId: string): Promise<Feature[]> {
-  if (isMock) return featuresData.filter(f => f.projectId === projectId);
+  if (isMock) return isDataCleared() ? [] : featuresData.filter(f => f.projectId === projectId);
   try {
     const { data, error } = await supabase.from('startup_features').select('*').eq('project_id', projectId);
     if (error) throw error;
@@ -133,7 +134,7 @@ export async function deleteFeature(id: string): Promise<void> {
 // ─── Bugs ─────────────────────────────────────────────────────────────────────
 
 export async function getBugs(projectId: string): Promise<BugReport[]> {
-  if (isMock) return bugsData.filter(b => b.projectId === projectId);
+  if (isMock) return isDataCleared() ? [] : bugsData.filter(b => b.projectId === projectId);
   try {
     const { data, error } = await supabase.from('startup_bugs').select('*').eq('project_id', projectId);
     if (error) throw error;
@@ -164,7 +165,7 @@ export async function deleteBug(id: string): Promise<void> {
 // ─── Milestones ───────────────────────────────────────────────────────────────
 
 export async function getMilestones(projectId: string): Promise<LaunchMilestone[]> {
-  if (isMock) return milestonesData.filter(m => m.projectId === projectId);
+  if (isMock) return isDataCleared() ? [] : milestonesData.filter(m => m.projectId === projectId);
   try {
     const { data, error } = await supabase.from('startup_milestones').select('*').eq('project_id', projectId);
     if (error) throw error;
@@ -190,7 +191,7 @@ export async function updateMilestone(id: string, updates: Partial<LaunchMilesto
 // ─── Revenue & User Metrics ───────────────────────────────────────────────────
 
 export async function getRevenueEntries(projectId: string): Promise<RevenueEntry[]> {
-  if (isMock) return revenueData.filter(r => r.projectId === projectId);
+  if (isMock) return isDataCleared() ? [] : revenueData.filter(r => r.projectId === projectId);
   try {
     const { data, error } = await supabase.from('startup_revenue').select('*').eq('project_id', projectId).order('month', { ascending: true });
     if (error) throw error;
@@ -199,7 +200,7 @@ export async function getRevenueEntries(projectId: string): Promise<RevenueEntry
 }
 
 export async function getUserMetrics(projectId: string): Promise<UserMetricEntry[]> {
-  if (isMock) return userMetricsData.filter(u => u.projectId === projectId);
+  if (isMock) return isDataCleared() ? [] : userMetricsData.filter(u => u.projectId === projectId);
   try {
     const { data, error } = await supabase.from('startup_user_metrics').select('*').eq('project_id', projectId).order('month', { ascending: true });
     if (error) throw error;

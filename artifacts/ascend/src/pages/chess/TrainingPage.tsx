@@ -17,12 +17,13 @@ import {
 } from "@/lib/chess-data";
 import { createTrainingSession, deleteTrainingSession, createGameNote, deleteGameNote, getTrainingSessions, getGameNotes } from "@/lib/chess-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
 export function TrainingPage() {
-  const [sessions, setSessions] = useState<TrainingSession[]>(initTraining);
-  const [games, setGames] = useState<GameNote[]>(initGames);
+  const [sessions, setSessions] = useState<TrainingSession[]>(() => isDataCleared() ? [] : initTraining);
+  const [games, setGames] = useState<GameNote[]>(() => isDataCleared() ? [] : initGames);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
   const { user } = useAuth();

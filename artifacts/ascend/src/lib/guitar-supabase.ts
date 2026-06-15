@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isDataCleared } from './data-cleared';
 import {
   practiceSessions, songsData, chordsData, scalesData, theoryLessons, recordings, skillAreas,
   PracticeSession, Song, ChordProgress, ScaleProgress, TheoryLesson, RecordingEntry, SkillArea,
@@ -9,7 +10,7 @@ const isMock = !isSupabaseConfigured;
 // ─── Practice Sessions ────────────────────────────────────────────────────────
 
 export async function getPracticeSessions(userId: string): Promise<PracticeSession[]> {
-  if (isMock) return practiceSessions;
+  if (isMock) return isDataCleared() ? [] : practiceSessions;
   try {
     const { data, error } = await supabase.from('guitar_practice_sessions').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;
@@ -40,7 +41,7 @@ export async function deletePracticeSession(id: string): Promise<void> {
 // ─── Songs ─────────────────────────────────────────────────────────────────────────
 
 export async function getSongs(userId: string): Promise<Song[]> {
-  if (isMock) return songsData;
+  if (isMock) return isDataCleared() ? [] : songsData;
   try {
     const { data, error } = await supabase.from('guitar_songs').select('*').eq('user_id', userId).order('start_date', { ascending: false });
     if (error) throw error;
@@ -71,7 +72,7 @@ export async function deleteSong(id: string): Promise<void> {
 // ─── Chords ─────────────────────────────────────────────────────────────────────────
 
 export async function getChords(userId: string): Promise<ChordProgress[]> {
-  if (isMock) return chordsData;
+  if (isMock) return isDataCleared() ? [] : chordsData;
   try {
     const { data, error } = await supabase.from('guitar_chords').select('*').eq('user_id', userId);
     if (error) throw error;
@@ -102,7 +103,7 @@ export async function deleteChord(id: string): Promise<void> {
 // ─── Scales ─────────────────────────────────────────────────────────────────────────
 
 export async function getScales(userId: string): Promise<ScaleProgress[]> {
-  if (isMock) return scalesData;
+  if (isMock) return isDataCleared() ? [] : scalesData;
   try {
     const { data, error } = await supabase.from('guitar_scales').select('*').eq('user_id', userId);
     if (error) throw error;
@@ -133,7 +134,7 @@ export async function deleteScale(id: string): Promise<void> {
 // ─── Theory Lessons ──────────────────────────────────────────────────────────
 
 export async function getTheoryLessons(userId: string): Promise<TheoryLesson[]> {
-  if (isMock) return theoryLessons;
+  if (isMock) return isDataCleared() ? [] : theoryLessons;
   try {
     const { data, error } = await supabase.from('guitar_theory_lessons').select('*').eq('user_id', userId);
     if (error) throw error;
@@ -149,7 +150,7 @@ export async function updateTheoryLesson(id: string, updates: Partial<TheoryLess
 // ─── Recordings ────────────────────────────────────────────────────────────────
 
 export async function getRecordings(userId: string): Promise<RecordingEntry[]> {
-  if (isMock) return recordings;
+  if (isMock) return isDataCleared() ? [] : recordings;
   try {
     const { data, error } = await supabase.from('guitar_recordings').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;
@@ -175,7 +176,7 @@ export async function deleteRecording(id: string): Promise<void> {
 // ─── Skill Areas ──────────────────────────────────────────────────────────────
 
 export async function getSkillAreas(userId: string): Promise<SkillArea[]> {
-  if (isMock) return skillAreas;
+  if (isMock) return isDataCleared() ? [] : skillAreas;
   try {
     const { data, error } = await supabase.from('guitar_skill_areas').select('*').eq('user_id', userId);
     if (error) throw error;

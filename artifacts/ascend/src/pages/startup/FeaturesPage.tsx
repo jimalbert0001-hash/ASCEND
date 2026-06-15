@@ -16,6 +16,7 @@ import {
 } from "@/lib/startup-data";
 import { createFeature, updateFeature, deleteFeature, createBug, updateBug, deleteBug, getFeatures, getBugs } from "@/lib/startup-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
@@ -239,8 +240,8 @@ function BugModal({ open, onClose, onSaved, projectId, initial }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export function FeaturesPage() {
   const [selectedProject, setSelectedProject] = useState(projectsData[0].id);
-  const [features, setFeatures] = useState<Feature[]>(featuresData);
-  const [bugs, setBugs] = useState<BugReport[]>(bugsData);
+  const [features, setFeatures] = useState<Feature[]>(() => isDataCleared() ? [] : featuresData);
+  const [bugs, setBugs] = useState<BugReport[]>(() => isDataCleared() ? [] : bugsData);
   const [featureModal, setFeatureModal] = useState(false);
   const [editFeature, setEditFeature] = useState<Feature | undefined>();
   const [bugModal, setBugModal] = useState(false);

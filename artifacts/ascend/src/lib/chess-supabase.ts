@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabase';
+import { isDataCleared } from './data-cleared';
 import {
   ratingHistory, puzzleSessions, openingsData, endgameStudies, tournamentsData, trainingSessions, gameNotes,
   RatingEntry, PuzzleSession, ChessOpening, EndgameStudy, Tournament, TrainingSession, GameNote,
@@ -9,7 +10,7 @@ const isMock = !isSupabaseConfigured;
 // ─── Rating ───────────────────────────────────────────────────────────────────
 
 export async function getRatingHistory(userId: string): Promise<RatingEntry[]> {
-  if (isMock) return ratingHistory;
+  if (isMock) return isDataCleared() ? [] : ratingHistory;
   try {
     const { data, error } = await supabase.from('chess_rating_history').select('*').eq('user_id', userId).order('date', { ascending: true });
     if (error) throw error;
@@ -35,7 +36,7 @@ export async function deleteRatingEntry(id: string): Promise<void> {
 // ─── Puzzle Sessions ──────────────────────────────────────────────────────────
 
 export async function getPuzzleSessions(userId: string): Promise<PuzzleSession[]> {
-  if (isMock) return puzzleSessions;
+  if (isMock) return isDataCleared() ? [] : puzzleSessions;
   try {
     const { data, error } = await supabase.from('chess_puzzle_sessions').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;
@@ -61,7 +62,7 @@ export async function deletePuzzleSession(id: string): Promise<void> {
 // ─── Openings ─────────────────────────────────────────────────────────────────
 
 export async function getOpenings(userId: string): Promise<ChessOpening[]> {
-  if (isMock) return openingsData;
+  if (isMock) return isDataCleared() ? [] : openingsData;
   try {
     const { data, error } = await supabase.from('chess_openings').select('*').eq('user_id', userId).order('games_played', { ascending: false });
     if (error) throw error;
@@ -92,7 +93,7 @@ export async function deleteOpening(id: string): Promise<void> {
 // ─── Endgame Studies ──────────────────────────────────────────────────────────
 
 export async function getEndgameStudies(userId: string): Promise<EndgameStudy[]> {
-  if (isMock) return endgameStudies;
+  if (isMock) return isDataCleared() ? [] : endgameStudies;
   try {
     const { data, error } = await supabase.from('chess_endgame_studies').select('*').eq('user_id', userId);
     if (error) throw error;
@@ -123,7 +124,7 @@ export async function deleteEndgameStudy(id: string): Promise<void> {
 // ─── Tournaments ──────────────────────────────────────────────────────────────
 
 export async function getTournaments(userId: string): Promise<Tournament[]> {
-  if (isMock) return tournamentsData;
+  if (isMock) return isDataCleared() ? [] : tournamentsData;
   try {
     const { data, error } = await supabase.from('chess_tournaments').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;
@@ -154,7 +155,7 @@ export async function deleteTournament(id: string): Promise<void> {
 // ─── Training Sessions ────────────────────────────────────────────────────────
 
 export async function getTrainingSessions(userId: string): Promise<TrainingSession[]> {
-  if (isMock) return trainingSessions;
+  if (isMock) return isDataCleared() ? [] : trainingSessions;
   try {
     const { data, error } = await supabase.from('chess_training_sessions').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;
@@ -185,7 +186,7 @@ export async function deleteTrainingSession(id: string): Promise<void> {
 // ─── Game Notes ───────────────────────────────────────────────────────────────
 
 export async function getGameNotes(userId: string): Promise<GameNote[]> {
-  if (isMock) return gameNotes;
+  if (isMock) return isDataCleared() ? [] : gameNotes;
   try {
     const { data, error } = await supabase.from('chess_game_notes').select('*').eq('user_id', userId).order('date', { ascending: false });
     if (error) throw error;

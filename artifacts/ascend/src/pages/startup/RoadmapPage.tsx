@@ -16,6 +16,7 @@ import {
 } from "@/lib/startup-data";
 import { createRoadmapItem, updateRoadmapItem, deleteRoadmapItem, getRoadmapItems } from "@/lib/startup-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
@@ -133,7 +134,7 @@ function ItemModal({ open, onClose, onSaved, projectId, defaultPhase, initial }:
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export function RoadmapPage() {
   const [selectedProject, setSelectedProject] = useState(projectsData[0].id);
-  const [items, setItems] = useState<RoadmapItem[]>(roadmapData);
+  const [items, setItems] = useState<RoadmapItem[]>(() => isDataCleared() ? [] : roadmapData);
   const [addModal, setAddModal] = useState<{ phase: RoadmapPhase } | null>(null);
   const [editItem, setEditItem] = useState<RoadmapItem | undefined>();
   const { user } = useAuth();

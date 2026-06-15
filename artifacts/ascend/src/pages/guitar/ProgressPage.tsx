@@ -22,6 +22,7 @@ import {
 } from "@/lib/guitar-data";
 import { updateScale, createScale, deleteScale, updateSkillArea, getScales, getSkillAreas } from "@/lib/guitar-supabase";
 import { useAuth } from "@/providers/AuthProvider";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 const SCALE_CYCLE: ScaleStatus[] = ['not_started', 'learning', 'comfortable', 'mastered'];
@@ -39,8 +40,8 @@ const practiceByWeek = (() => {
 })();
 
 export function ProgressPage() {
-  const [scales, setScales] = useState<ScaleProgress[]>(initScales);
-  const [skills, setSkills] = useState<SkillArea[]>(initSkillAreas);
+  const [scales, setScales] = useState<ScaleProgress[]>(() => isDataCleared() ? [] : initScales);
+  const [skills, setSkills] = useState<SkillArea[]>(() => isDataCleared() ? [] : initSkillAreas);
   const [scaleOpen, setScaleOpen] = useState(false);
   const [sf, setSf] = useState({ name: '', positions: 5, positionsMastered: 0, status: 'not_started' as ScaleStatus, notes: '' });
   const { user } = useAuth();
