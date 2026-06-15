@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { logDailyReview, fetchAcademicsData, fetchChessData, fetchGuitarData } from "@/lib/log-api";
 import { useAuth } from "@/providers/AuthProvider";
+import { useStreakStore } from "@/stores/streak.store";
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: "😔", label: "Rough" },
@@ -171,6 +172,7 @@ interface DailyReviewModalProps {
 export function DailyReviewModal({ open, onClose }: DailyReviewModalProps) {
   const { user } = useAuth();
   const userId = user?.id ?? "mock-user-1";
+  const recordActivity = useStreakStore((s) => s.recordActivity);
 
   const [mood, setMood] = useState(4);
   const [energy, setEnergy] = useState(3);
@@ -238,6 +240,7 @@ export function DailyReviewModal({ open, onClose }: DailyReviewModalProps) {
         startupTaskDone,
         notes,
       });
+      recordActivity(estimatedScore);
       setSavedScore(estimatedScore);
     } catch (err) {
       console.error("Failed to save review", err);
