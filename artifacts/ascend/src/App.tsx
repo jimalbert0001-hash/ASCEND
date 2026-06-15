@@ -1,5 +1,5 @@
-import { Component, ErrorInfo, ReactNode } from "react";
-import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
+import { Component, ErrorInfo, ReactNode, useEffect, useRef } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { Spinner } from "@/components/ui/spinner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -67,7 +67,24 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, authError } = useAuth();
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
+  const didRedirect = useRef(false);
+
+  useEffect(() => {
+    if (loading) return;
+    if (authError) return;
+    if (!user) {
+      didRedirect.current = true;
+      navigate('/login');
+      return;
+    }
+    if (!user.name && location !== '/onboarding') {
+      didRedirect.current = true;
+      navigate('/onboarding');
+      return;
+    }
+    didRedirect.current = false;
+  }, [loading, authError, user, location, navigate]);
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-3">
@@ -81,8 +98,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <button onClick={() => window.location.reload()} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium">Retry</button>
     </div>
   );
-  if (!user) return <Redirect to="/login" />;
-  if (!user.name && location !== '/onboarding') return <Redirect to="/onboarding" />;
+  if (!user) return null;
+  if (!user.name && location !== '/onboarding') return null;
   return <>{children}</>;
 }
 
@@ -186,9 +203,9 @@ function Router() {
   );
 }
 
-function App() {
-  const queryClient = new QueryClient();
+const queryClient = new QueryClient();
 
+function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>

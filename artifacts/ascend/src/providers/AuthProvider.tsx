@@ -78,10 +78,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await fetchUserWithTimeout();
       setUser(data);
+      setAuthError(null);
       return data;
     } catch (err) {
       const isAbort = err instanceof DOMException && err.name === 'AbortError';
-      if (isAbort) setAuthError('Request timed out. Please try again.');
+      setAuthError(isAbort ? 'Request timed out. Please try again.' : 'Failed to connect. Please refresh.');
       setUser(null);
       return null;
     }
