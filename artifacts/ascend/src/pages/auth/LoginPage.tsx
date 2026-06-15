@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
+  const [authError, setAuthError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -12,6 +14,7 @@ export function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    setAuthError(false);
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/login`, {
@@ -22,16 +25,28 @@ export function LoginPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || 'Login failed');
+        if (res.status === 401) {
+          setAuthError(true);
+          setError('Incorrect email or password. Please try again.');
+        } else {
+          setError(data.error || 'Login failed. Please try again.');
+        }
         return;
       }
       window.location.href = '/';
     } catch {
-      setError('Network error. Please try again.');
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   }
+
+  const inputClass = (hasError: boolean) =>
+    `w-full px-3 py-2 rounded-lg border text-sm focus:outline-none focus:ring-2 bg-background ${
+      hasError
+        ? 'border-destructive focus:ring-destructive/40'
+        : 'border-input focus:ring-ring'
+    }`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
@@ -52,8 +67,8 @@ export function LoginPage() {
               required
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => { setEmail(e.target.value); setAuthError(false); setError(''); }}
+              className={inputClass(authError)}
             />
           </div>
           <div className="space-y-1">
@@ -64,8 +79,8 @@ export function LoginPage() {
               required
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => { setPassword(e.target.value); setAuthError(false); setError(''); }}
+              className={inputClass(authError)}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -81,7 +96,10 @@ export function LoginPage() {
             </label>
           </div>
           {error && (
-            <p className="text-sm text-destructive">{error}</p>
+            <div className="flex items-start gap-2.5 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+              <p className="text-sm text-destructive">{error}</p>
+            </div>
           )}
           <button
             type="submit"
