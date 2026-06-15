@@ -40,7 +40,8 @@ function makeSupabase(req, res) {
       storage: {
         getItem: (key) => req.cookies?.[key] ?? null,
         setItem: (key, value) => {
-          res.cookie(key, value, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/' });
+          const isProd = process.env.NODE_ENV === 'production';
+          res.cookie(key, value, { httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/' });
         },
         removeItem: (key) => {
           res.clearCookie(key, { path: '/' });
@@ -83,11 +84,12 @@ app.post('/api/login', async (req, res) => {
   const refreshMaxAge = rememberMe
     ? 60 * 60 * 24 * 30 * 1000   // 30 days
     : 60 * 60 * 24 * 7 * 1000;   // 7 days
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('sb-access-token', data.session.access_token, {
-    httpOnly: true, secure: true, sameSite: 'lax', maxAge: accessMaxAge, path: '/',
+    httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: accessMaxAge, path: '/',
   });
   res.cookie('sb-refresh-token', data.session.refresh_token, {
-    httpOnly: true, secure: true, sameSite: 'lax', maxAge: refreshMaxAge, path: '/',
+    httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: refreshMaxAge, path: '/',
   });
   res.json({ ok: true });
 });
@@ -121,11 +123,12 @@ app.get('/api/auth/user', async (req, res) => {
     });
     if (!refreshError && refreshData.user) {
       if (refreshData.session) {
+        const isProd = process.env.NODE_ENV === 'production';
         res.cookie('sb-access-token', refreshData.session.access_token, {
-          httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 1000, path: '/',
+          httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 60 * 60 * 1000, path: '/',
         });
         res.cookie('sb-refresh-token', refreshData.session.refresh_token, {
-          httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/',
+          httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/',
         });
       }
       res.json({
@@ -165,11 +168,12 @@ app.post('/api/auth/refresh', async (req, res) => {
     return;
   }
 
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('sb-access-token', data.session.access_token, {
-    httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 1000, path: '/',
+    httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 60 * 60 * 1000, path: '/',
   });
   res.cookie('sb-refresh-token', data.session.refresh_token, {
-    httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/',
+    httpOnly: true, secure: isProd, sameSite: isProd ? 'none' : 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/',
   });
 
   res.json({
