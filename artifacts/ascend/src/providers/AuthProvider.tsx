@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { getAccessToken, setTokens, clearTokens } from '@/lib/api-fetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -30,7 +31,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function initAuth() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/auth/user`, { credentials: 'include' });
+        const accessToken = getAccessToken();
+        if (!accessToken) {
+          setUser(null);
+          return;
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/auth/user`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
         if (res.ok) {
           const data = await res.json();
           setUser(data ?? null);
@@ -38,15 +48,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (res.status === 401) {
-          const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-            method: 'POST',
-            credentials: 'include',
-          });
-          if (refreshRes.ok) {
-            const data = await refreshRes.json();
-            setUser(data ?? null);
-            return;
+          const refreshToken = localStorage.getItem('sb-refresh-token');
+          if (refreshToken) {
+            const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              setTokens(refreshData.access_token, refreshData.refresh_token);
+              setUser(refreshData.user ?? null);
+              return;
+            }
           }
+          clearTokens();
         }
 
         setUser(null);
@@ -61,7 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = () => {
-    window.location.href = `${API_BASE_URL}/api/logout`;
+    clearTokens();
+    window.location.href = '/login';
   };
 
   return (

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { setTokens } from '@/lib/api-fetch';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -20,7 +21,6 @@ export function LoginPage() {
       const res = await fetch(`${API_BASE}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ email, password, rememberMe }),
       });
       if (!res.ok) {
@@ -33,6 +33,8 @@ export function LoginPage() {
         }
         return;
       }
+      const data = await res.json();
+      setTokens(data.access_token, data.refresh_token);
       window.location.href = '/';
     } catch {
       setError('Network error. Please check your connection and try again.');
