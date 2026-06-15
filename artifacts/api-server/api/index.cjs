@@ -173,7 +173,8 @@ app.post('/api/auth/refresh', async (req, res) => {
 app.get('/api/logout', (_req, res) => {
   res.clearCookie('sb-access-token', { path: '/' });
   res.clearCookie('sb-refresh-token', { path: '/' });
-  res.redirect(`${FRONTEND_URL}/login`);
+  const frontendUrl = process.env.FRONTEND_URL || 'https://ascend-ascend.vercel.app';
+  res.redirect(`${frontendUrl}/login`);
 });
 
 module.exports = app;
