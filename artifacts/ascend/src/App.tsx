@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
 import { Spinner } from "@/components/ui/spinner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,6 +12,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { ForgotPasswordPage } from "@/pages/auth/ForgotPasswordPage";
+import { OnboardingPage } from "@/pages/auth/OnboardingPage";
 
 import { DashboardPage } from "@/pages/DashboardPage";
 
@@ -46,12 +47,15 @@ import { SettingsPage } from "@/pages/SettingsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const [location] = useLocation();
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <Spinner className="size-8 text-muted-foreground" />
     </div>
   );
   if (!user) return <Redirect to="/login" />;
+  if (!user.name && location !== '/onboarding') return <Redirect to="/onboarding" />;
   return <>{children}</>;
 }
 
@@ -62,6 +66,10 @@ function Router() {
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
       <Route path="/auth/forgot-password" component={ForgotPasswordPage} />
+
+      <Route path="/onboarding">
+        <ProtectedRoute><OnboardingPage /></ProtectedRoute>
+      </Route>
 
       <Route path="/">
         <ProtectedRoute><AppShell><DashboardPage /></AppShell></ProtectedRoute>

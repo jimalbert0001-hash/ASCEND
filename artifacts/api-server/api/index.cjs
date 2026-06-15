@@ -136,6 +136,34 @@ app.post('/api/auth/refresh', async (req, res) => {
   });
 });
 
+app.post('/api/profile', async (req, res) => {
+  const accessToken = getBearerToken(req);
+  if (!accessToken) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+  const { full_name } = req.body;
+  if (!full_name || typeof full_name !== 'string' || !full_name.trim()) {
+    res.status(400).json({ error: 'full_name is required' });
+    return;
+  }
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ data: { full_name: full_name.trim() } }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    res.status(500).json({ error: err.message || 'Failed to update profile' });
+    return;
+  }
+  res.json({ ok: true });
+});
+
 app.post('/api/logout', (_req, res) => {
   res.json({ ok: true });
 });

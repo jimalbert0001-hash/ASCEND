@@ -44,7 +44,9 @@ export function TopBar() {
         
         <Avatar className="w-8 h-8 cursor-pointer ring-2 ring-transparent hover:ring-primary transition-all">
           <AvatarFallback className="bg-primary/20 text-primary font-bold text-xs">
-            {sampleData.user.initials}
+            {user?.name
+              ? user.name.trim().split(/\s+/).filter(Boolean).map((p) => p[0].toUpperCase()).filter((_, i, arr) => i === 0 || i === arr.length - 1).join('')
+              : '?'}
           </AvatarFallback>
         </Avatar>
       </div>
