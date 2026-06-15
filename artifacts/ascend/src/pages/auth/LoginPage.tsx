@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { setTokens } from '@/lib/api-fetch';
+import { useAuth } from '@/providers/AuthProvider';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -9,6 +11,8 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [authError, setAuthError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { refreshUser } = useAuth();
+  const [, navigate] = useLocation();
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -35,9 +39,12 @@ export function LoginPage() {
       }
       const data = await res.json();
       setTokens(data.access_token, data.refresh_token);
-      window.location.href = data.user?.name ? '/' : '/onboarding';
+      const updatedUser = await refreshUser();
+      navigate(updatedUser?.name ? '/' : '/onboarding');
     } catch (err) {
-      const msg = err instanceof TypeError ? 'Unable to reach the server. Please check your connection and try again.' : 'Something went wrong. Please try again.';
+      const msg = err instanceof TypeError
+        ? 'Unable to reach the server. Please check your connection and try again.'
+        : 'Something went wrong. Please try again.';
       setError(msg);
     } finally {
       setLoading(false);

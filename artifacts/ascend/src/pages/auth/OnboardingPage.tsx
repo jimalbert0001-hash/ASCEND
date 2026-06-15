@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { apiFetch } from '@/lib/api-fetch';
 import { useAuth } from '@/providers/AuthProvider';
 
 export function OnboardingPage() {
   const { refreshUser } = useAuth();
+  const [, navigate] = useLocation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +33,7 @@ export function OnboardingPage() {
         return;
       }
       await refreshUser();
-      window.location.href = '/';
+      navigate('/');
     } catch {
       setError('Network error. Please check your connection and try again.');
     } finally {

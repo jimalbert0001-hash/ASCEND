@@ -3,78 +3,101 @@ import { getAccessToken, setTokens, clearTokens } from '@/lib/api-fetch';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-interface AuthUser {
+export interface AuthUser {
   id: string;
   email?: string;
-  name?: string;
-  profileImageUrl?: string;
+  name?: string | null;
+  profileImageUrl?: string | null;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
-  refreshUser: () => Promise<void>;
+  authError: string | null;
+  refreshUser: () => Promise<AuthUser | null>;
   signOut: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  refreshUser: async () => {},
+  authError: null,
+  refreshUser: async () => null,
   signOut: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-async function fetchUser(): Promise<AuthUser | null> {
+async function fetchUserWithTimeout(): Promise<AuthUser | null> {
   const accessToken = getAccessToken();
   if (!accessToken) return null;
 
-  const res = await fetch(`${API_BASE_URL}/api/auth/user`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
 
-  if (res.ok) {
-    return res.json();
-  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/user`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: controller.signal,
+    });
 
-  if (res.status === 401) {
-    const refreshToken = localStorage.getItem('sb-refresh-token');
-    if (refreshToken) {
-      const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
-      if (refreshRes.ok) {
-        const refreshData = await refreshRes.json();
-        setTokens(refreshData.access_token, refreshData.refresh_token);
-        return refreshData.user ?? null;
-      }
-      clearTokens();
+    if (res.ok) {
+      return res.json();
     }
-  }
 
-  return null;
+    if (res.status === 401) {
+      const refreshToken = localStorage.getItem('sb-refresh-token');
+      if (refreshToken) {
+        const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+          signal: controller.signal,
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          setTokens(refreshData.access_token, refreshData.refresh_token);
+          return refreshData.user ?? null;
+        }
+        clearTokens();
+      }
+    }
+
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<AuthUser | null> => {
     try {
-      const data = await fetchUser();
+      const data = await fetchUserWithTimeout();
       setUser(data);
-    } catch {
+      return data;
+    } catch (err) {
+      const isAbort = err instanceof DOMException && err.name === 'AbortError';
+      if (isAbort) setAuthError('Request timed out. Please try again.');
       setUser(null);
+      return null;
     }
   }, []);
 
   useEffect(() => {
-    fetchUser()
-      .then(setUser)
-      .catch(() => setUser(null))
+    fetchUserWithTimeout()
+      .then((data) => {
+        setUser(data);
+        setAuthError(null);
+      })
+      .catch((err) => {
+        setUser(null);
+        const isAbort = err instanceof DOMException && err.name === 'AbortError';
+        setAuthError(isAbort ? 'Connection timed out. Please refresh.' : 'Failed to connect. Please refresh.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -84,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, refreshUser, signOut }}>
+    <AuthContext.Provider value={{ user, loading, authError, refreshUser, signOut }}>
       {children}
     </AuthContext.Provider>
   );
