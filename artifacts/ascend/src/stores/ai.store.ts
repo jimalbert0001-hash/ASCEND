@@ -108,6 +108,7 @@ interface AIState {
   resetPersonalityOverrides: () => void;
   addTokenUsage: (role: CoachRole, usage: TokenUsage) => void;
   resetTokenUsage: () => void;
+  resetAll: () => void;
 }
 
 function generateId() {
@@ -264,6 +265,32 @@ export const useAIStore = create<AIState>()(
 
       resetTokenUsage: () =>
         set({
+          tokenUsage: {
+            total: 0,
+            byRole: { achievement: 0, academic: 0, startup: 0, chess: 0, guitar: 0 },
+            lastUsage: null,
+          },
+        }),
+
+      resetAll: () =>
+        set({
+          conversations: [],
+          activeConversationId: null,
+          isStreaming: false,
+          streamingContent: '',
+          dailyRecommendations: null,
+          morningBriefing: null,
+          weeklyRecommendations: null,
+          weeklyDigest: null,
+          weaknesses: null,
+          goalAnalyses: null,
+          personalityOverrides: {
+            achievement: '',
+            academic: '',
+            startup: '',
+            chess: '',
+            guitar: '',
+          },
           tokenUsage: {
             total: 0,
             byRole: { achievement: 0, academic: 0, startup: 0, chess: 0, guitar: 0 },

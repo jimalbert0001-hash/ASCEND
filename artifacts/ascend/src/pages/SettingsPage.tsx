@@ -8,10 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2, Target } from "lucide-react";
+import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2, Target, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchChessAccounts, saveChessAccounts } from "@/lib/chess-api";
 import { useStatsStore } from "@/stores/stats.store";
+import { useStreakStore } from "@/stores/streak.store";
 import { fetchGoals, saveGoals } from "@/lib/goals-api";
 import { EditableField } from "@/components/ui/EditableField";
 
@@ -74,9 +75,15 @@ export function SettingsPage() {
     resetPersonalityOverrides,
     tokenUsage,
     resetTokenUsage,
+    resetAll: resetAIStore,
   } = useAIStore();
 
+  const { resetAll: resetStatsStore } = useStatsStore();
+  const { reset: resetStreakStore } = useStreakStore();
+
   const [activeRole, setActiveRole] = useState<CoachRole>('achievement');
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   // Chess account settings
   const [chesscomUsername, setChesscomUsername] = useState('princeplaysch');
@@ -119,6 +126,15 @@ export function SettingsPage() {
       setGoalsLoading(false);
     });
   }, [user?.id]);
+
+  function handleResetAll() {
+    resetStatsStore();
+    resetStreakStore();
+    resetAIStore();
+    setResetConfirm(false);
+    setResetDone(true);
+    setTimeout(() => setResetDone(false), 3000);
+  }
 
   async function handleSaveChessAccounts() {
     if (!user?.id) return;
@@ -443,7 +459,49 @@ export function SettingsPage() {
         {/* Danger Zone */}
         <Card className="p-6 border-destructive/20">
           <h3 className="text-lg font-bold text-destructive mb-4">Danger Zone</h3>
-          <div className="space-y-4">
+          <div className="space-y-6">
+
+            {/* Reset All Data */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold">Reset All App Data</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Wipes all stats, streaks, goals, tasks, AI conversations, and coach settings. Cannot be undone.
+                </p>
+              </div>
+
+              {resetDone ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-500 font-medium">
+                  <CheckCircle2 className="w-4 h-4" />
+                  All data has been reset.
+                </div>
+              ) : resetConfirm ? (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                  <p className="text-xs text-destructive flex-1">This will erase everything permanently.</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setResetConfirm(false)}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" variant="destructive" className="h-7 px-3 text-xs" onClick={handleResetAll}>
+                      Yes, reset everything
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground gap-2"
+                  onClick={() => setResetConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Reset All Data
+                </Button>
+              )}
+            </div>
+
+            <div className="border-t border-border/50" />
+
             <Button variant="destructive" className="w-full sm:w-auto" onClick={signOut} data-testid="button-signout">
               Sign Out
             </Button>
