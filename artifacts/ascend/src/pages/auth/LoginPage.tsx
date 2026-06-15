@@ -36,8 +36,9 @@ export function LoginPage() {
       const data = await res.json();
       setTokens(data.access_token, data.refresh_token);
       window.location.href = data.user?.name ? '/' : '/onboarding';
-    } catch {
-      setError('Network error. Please check your connection and try again.');
+    } catch (err) {
+      const msg = err instanceof TypeError ? 'Unable to reach the server. Please check your connection and try again.' : 'Something went wrong. Please try again.';
+      setError(msg);
     } finally {
       setLoading(false);
     }

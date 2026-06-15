@@ -5,18 +5,28 @@ const { createClient } = require('@supabase/supabase-js');
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
-const allowedOrigins = [
-  'https://ascend-ascend.vercel.app',
-  'https://ascend-frontend-git-main-ascend-v1.vercel.app',
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-].filter(Boolean);
+const EXTRA_ORIGINS = (process.env.FRONTEND_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (origin === 'http://localhost:5173' || origin === 'http://localhost:3000') return true;
+  // Allow any vercel.app subdomain that contains "ascend"
+  if (/^https:\/\/ascend[a-z0-9-]*\.vercel\.app$/.test(origin)) return true;
+  if (EXTRA_ORIGINS.includes(origin)) return true;
+  return false;
+}
 
 const app = express();
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('[cors] blocked origin:', origin);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
