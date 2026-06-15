@@ -3,14 +3,14 @@
   "installCommand": "npm install --legacy-peer-deps --no-package-lock",
   "builds": [
     {
-      "src": "api/index.js",
+      "src": "api/index.cjs",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/index.js"
+      "dest": "api/index.cjs"
     }
   ]
 }
