@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import { ClipboardList } from "lucide-react";
 
 export function UpcomingTasks() {
-  const tasks = useStatsStore((s) => s.tasks.filter((t) => !t.completed));
+  const allTasks = useStatsStore((s) => s.tasks);
+  const tasks = allTasks.filter((t) => !t.completed);
 
   return (
     <Card className="p-6">
