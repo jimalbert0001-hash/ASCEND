@@ -1,12 +1,6 @@
 {
   "version": 2,
   "installCommand": "npm install --legacy-peer-deps --no-package-lock",
-  "builds": [
-    {
-      "src": "api/index.cjs",
-      "use": "@vercel/node"
-    }
-  ],
   "routes": [
     {
       "src": "/(.*)",
