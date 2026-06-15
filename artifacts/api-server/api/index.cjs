@@ -133,6 +133,43 @@ app.get('/api/auth/user', async (req, res) => {
   res.status(401).json({ error: 'Session expired' });
 });
 
+app.post('/api/auth/refresh', async (req, res) => {
+  const accessToken = req.cookies?.['sb-access-token'];
+  const refreshToken = req.cookies?.['sb-refresh-token'];
+
+  if (!refreshToken) {
+    res.status(401).json({ error: 'No refresh token' });
+    return;
+  }
+
+  const supabase = makeSupabase(req, res);
+  const { data, error } = await supabase.auth.setSession({
+    access_token: accessToken || '',
+    refresh_token: refreshToken,
+  });
+
+  if (error || !data.session || !data.user) {
+    res.clearCookie('sb-access-token', { path: '/' });
+    res.clearCookie('sb-refresh-token', { path: '/' });
+    res.status(401).json({ error: 'Refresh failed' });
+    return;
+  }
+
+  res.cookie('sb-access-token', data.session.access_token, {
+    httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 1000, path: '/',
+  });
+  res.cookie('sb-refresh-token', data.session.refresh_token, {
+    httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/',
+  });
+
+  res.json({
+    id: data.user.id,
+    email: data.user.email,
+    name: data.user.user_metadata?.['full_name'] ?? data.user.user_metadata?.['name'] ?? null,
+    profileImageUrl: data.user.user_metadata?.['avatar_url'] ?? null,
+  });
+});
+
 app.get('/api/logout', (_req, res) => {
   res.clearCookie('sb-access-token', { path: '/' });
   res.clearCookie('sb-refresh-token', { path: '/' });

@@ -28,17 +28,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const url = `${API_BASE_URL}/api/auth/user`;
-    fetch(url, { credentials: 'include' })
-      .then((res) => {
-        if (res.ok) return res.json();
-        return null;
-      })
-      .then((data) => {
-        setUser(data ?? null);
-      })
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    async function initAuth() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/user`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data ?? null);
+          return;
+        }
+
+        if (res.status === 401) {
+          const refreshRes = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            setUser(data ?? null);
+            return;
+          }
+        }
+
+        setUser(null);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    initAuth();
   }, []);
 
   const signOut = () => {
