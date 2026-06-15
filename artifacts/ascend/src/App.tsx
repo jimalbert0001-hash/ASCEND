@@ -74,8 +74,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     if (loading) return;
     if (authError) return;
     if (!user) {
-      didRedirect.current = true;
-      navigate('/login');
+      if (location !== '/login') {
+        didRedirect.current = true;
+        navigate('/login');
+      }
       return;
     }
     if (!user.name && location !== '/onboarding') {
@@ -84,7 +86,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       return;
     }
     didRedirect.current = false;
-  }, [loading, authError, user, location, navigate]);
+  // navigate is a stable wouter setter (like setState) — excluded from deps to prevent re-render loop
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, authError, user, location]);
 
   if (loading) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-3">
