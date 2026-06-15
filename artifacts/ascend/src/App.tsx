@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
+import { Spinner } from "@/components/ui/spinner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,7 +46,11 @@ import { SettingsPage } from "@/pages/SettingsPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Spinner className="size-8 text-muted-foreground" />
+    </div>
+  );
   if (!user) return <Redirect to="/login" />;
   return <>{children}</>;
 }
