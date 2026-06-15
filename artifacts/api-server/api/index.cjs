@@ -3,14 +3,24 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { createClient } = require('@supabase/supabase-js');
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://ascend-frontend-git-main-ascend-v1.vercel.app';
 const API_URL = process.env.API_URL || 'http://localhost:3000';
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
 
+const allowedOrigins = [
+  'https://ascend-ascend.vercel.app',
+  'https://ascend-frontend-git-main-ascend-v1.vercel.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 const app = express();
 
-app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
