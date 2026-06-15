@@ -1,10 +1,10 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
-import { AuthProvider } from "@/providers/AuthProvider";
+import { AuthProvider, useAuth } from "@/providers/AuthProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { AppShell } from "@/components/layout/AppShell";
 
@@ -43,92 +43,100 @@ import { AchievementsPage } from "@/pages/AchievementsPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { SettingsPage } from "@/pages/SettingsPage";
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Redirect to="/login" />;
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <Switch>
+      <Route path="/login" component={LoginPage} />
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
       <Route path="/auth/forgot-password" component={ForgotPasswordPage} />
 
       <Route path="/">
-        <AppShell><DashboardPage /></AppShell>
+        <ProtectedRoute><AppShell><DashboardPage /></AppShell></ProtectedRoute>
       </Route>
 
       <Route path="/academics">
-        <AppShell><AcademicsOverview /></AppShell>
+        <ProtectedRoute><AppShell><AcademicsOverview /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/academics/subjects">
-        <AppShell><SubjectsPage /></AppShell>
+        <ProtectedRoute><AppShell><SubjectsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/academics/tests">
-        <AppShell><MockTestsPage /></AppShell>
+        <ProtectedRoute><AppShell><MockTestsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/academics/revision">
-        <AppShell><RevisionPage /></AppShell>
+        <ProtectedRoute><AppShell><RevisionPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/academics/analytics">
-        <AppShell><AnalyticsPage /></AppShell>
+        <ProtectedRoute><AppShell><AnalyticsPage /></AppShell></ProtectedRoute>
       </Route>
 
       <Route path="/startup">
-        <AppShell><StartupOverview /></AppShell>
+        <ProtectedRoute><AppShell><StartupOverview /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/startup/projects">
-        <AppShell><ProjectsPage /></AppShell>
+        <ProtectedRoute><AppShell><ProjectsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/startup/roadmap">
-        <AppShell><RoadmapPage /></AppShell>
+        <ProtectedRoute><AppShell><RoadmapPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/startup/features">
-        <AppShell><FeaturesPage /></AppShell>
+        <ProtectedRoute><AppShell><FeaturesPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/startup/metrics">
-        <AppShell><MetricsPage /></AppShell>
+        <ProtectedRoute><AppShell><MetricsPage /></AppShell></ProtectedRoute>
       </Route>
 
       <Route path="/chess">
-        <AppShell><ChessOverview /></AppShell>
+        <ProtectedRoute><AppShell><ChessOverview /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/chess/training">
-        <AppShell><TrainingPage /></AppShell>
+        <ProtectedRoute><AppShell><TrainingPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/chess/games">
-        <AppShell><ChessGamesPage /></AppShell>
+        <ProtectedRoute><AppShell><ChessGamesPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/chess/openings">
-        <AppShell><OpeningsPage /></AppShell>
+        <ProtectedRoute><AppShell><OpeningsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/chess/tournaments">
-        <AppShell><TournamentsPage /></AppShell>
+        <ProtectedRoute><AppShell><TournamentsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/chess/analytics">
-        <AppShell><ChessAnalytics /></AppShell>
+        <ProtectedRoute><AppShell><ChessAnalytics /></AppShell></ProtectedRoute>
       </Route>
 
       <Route path="/guitar">
-        <AppShell><GuitarOverview /></AppShell>
+        <ProtectedRoute><AppShell><GuitarOverview /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/guitar/practice">
-        <AppShell><PracticePage /></AppShell>
+        <ProtectedRoute><AppShell><PracticePage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/guitar/songs">
-        <AppShell><SongsPage /></AppShell>
+        <ProtectedRoute><AppShell><SongsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/guitar/progress">
-        <AppShell><ProgressPage /></AppShell>
+        <ProtectedRoute><AppShell><ProgressPage /></AppShell></ProtectedRoute>
       </Route>
 
       <Route path="/ai-mentor">
-        <AppShell><AIMentorPage /></AppShell>
+        <ProtectedRoute><AppShell><AIMentorPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/achievements">
-        <AppShell><AchievementsPage /></AppShell>
+        <ProtectedRoute><AppShell><AchievementsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/profile">
-        <AppShell><ProfilePage /></AppShell>
+        <ProtectedRoute><AppShell><ProfilePage /></AppShell></ProtectedRoute>
       </Route>
       <Route path="/settings">
-        <AppShell><SettingsPage /></AppShell>
+        <ProtectedRoute><AppShell><SettingsPage /></AppShell></ProtectedRoute>
       </Route>
       <Route component={NotFound} />
     </Switch>
