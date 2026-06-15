@@ -7,7 +7,10 @@ import { logger } from "./lib/logger.js";
 
 const app: Express = express();
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://ascend-frontend-git-main-ascend-v1.vercel.app';
+const ALLOWED_ORIGINS: string[] = [
+  'https://ascend-frontend-git-main-ascend-v1.vercel.app',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+];
 
 app.use(
   pinoHttp({
@@ -30,7 +33,13 @@ app.use(
 );
 
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin not allowed — ${origin}`));
+    }
+  },
   credentials: true,
 }));
 

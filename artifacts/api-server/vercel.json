@@ -1,11 +1,12 @@
 {
   "version": 2,
   "installCommand": "npm install --legacy-peer-deps --no-package-lock",
+  "buildCommand": "node ./build.mjs",
   "outputDirectory": ".",
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/index.cjs"
+      "dest": "api/index.mjs"
     }
   ]
 }
