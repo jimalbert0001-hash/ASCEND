@@ -1,30 +1,19 @@
 export const sampleData = {
-  dailyScore: 847,
-  weeklyScores: [720, 680, 890, 750, 847, 0, 0],
+  dailyScore: 0,
+  weeklyScores: [0, 0, 0, 0, 0, 0, 0],
   streak: {
-    current: 23,
-    longest: 31
+    current: 0,
+    longest: 0
   },
-  goals: [
-    { id: '1', title: 'Score 95%+ in Physics', domain: 'academics', progress: 68 },
-    { id: '2', title: 'Launch MVP by July', domain: 'startup', progress: 40 },
-    { id: '3', title: 'Reach 1800 Chess Rating', domain: 'chess', progress: 72, label: '1450/1800' },
-    { id: '4', title: 'Master Fingerpicking', domain: 'guitar', progress: 55 }
-  ],
-  tasks: [
-    { id: '1', title: 'Chapter 12: Thermodynamics revision', domain: 'academics', due: 'Tomorrow', priority: 'high', completed: false },
-    { id: '2', title: 'Write landing page copy', domain: 'startup', due: 'In 2 days', priority: 'medium', completed: false },
-    { id: '3', title: 'Solve 30 tactics puzzles', domain: 'chess', due: 'Today', priority: 'high', completed: false },
-    { id: '4', title: 'Practice F major chord', domain: 'guitar', due: 'Today', priority: 'low', completed: false },
-    { id: '5', title: 'Daily review', domain: 'life', due: 'Today', priority: 'medium', completed: false }
-  ],
+  goals: [],
+  tasks: [],
   achievements: [
-    { id: '1', title: 'First Steps', description: 'Complete your first task', type: 'milestone', date: '2024-01-15', earned: true },
-    { id: '2', title: 'On Fire', description: 'Reach a 7-day streak', type: 'streak', date: '2024-02-01', earned: true },
-    { id: '3', title: 'Scholar', description: 'Log 50 hours of study', type: 'skill', date: '2024-03-10', earned: true },
-    { id: '4', title: 'Founder', description: 'Launch a project', type: 'milestone', date: '2024-04-05', earned: true },
-    { id: '5', title: 'Tactician', description: 'Solve 500 chess puzzles', type: 'skill', date: '2024-05-20', earned: true },
-    { id: '6', title: 'Consistency', description: 'Log activity in all domains in one day', type: 'meta', date: '2024-06-12', earned: true },
+    { id: '1', title: 'First Steps', description: 'Complete your first task', type: 'milestone', earned: false },
+    { id: '2', title: 'On Fire', description: 'Reach a 7-day streak', type: 'streak', earned: false },
+    { id: '3', title: 'Scholar', description: 'Log 50 hours of study', type: 'skill', earned: false },
+    { id: '4', title: 'Founder', description: 'Launch a project', type: 'milestone', earned: false },
+    { id: '5', title: 'Tactician', description: 'Solve 500 chess puzzles', type: 'skill', earned: false },
+    { id: '6', title: 'Consistency', description: 'Log activity in all domains in one day', type: 'meta', earned: false },
     { id: '7', title: 'Unstoppable', description: 'Reach a 30-day streak', type: 'streak', earned: false },
     { id: '8', title: 'Mastermind', description: 'Reach 2000 Chess Rating', type: 'skill', earned: false },
     { id: '9', title: 'Virtuoso', description: 'Learn 10 full songs', type: 'skill', earned: false },
@@ -43,15 +32,15 @@ export const sampleData = {
     { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius" }
   ],
   user: {
-    name: 'Alex Mercer',
-    email: 'alex@example.com',
-    initials: 'AM',
+    name: '',
+    email: '',
+    initials: '',
     stats: {
-      studyHours: 142,
-      chessRating: 1450,
-      habitStreak: 23
+      studyHours: 0,
+      chessRating: 0,
+      habitStreak: 0
     },
-    joinedDate: 'January 2024',
-    activeDomains: ['academics', 'startup', 'chess', 'guitar']
+    joinedDate: '',
+    activeDomains: []
   }
 };
