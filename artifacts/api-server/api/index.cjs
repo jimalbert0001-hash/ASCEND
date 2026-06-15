@@ -11,6 +11,8 @@ const allowedOrigins = [
   'https://ascend-ascend.vercel.app',
   'https://ascend-frontend-git-main-ascend-v1.vercel.app',
   process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
 ].filter(Boolean);
 
 const app = express();
@@ -22,8 +24,9 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-app.use(cors(corsOptions));
+// OPTIONS must be registered before app.use(cors()) so preflight is handled first
 app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -52,11 +55,16 @@ app.get('/api/healthz', (_req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
+  console.log('[login] request origin:', req.headers['origin']);
+  console.log('[login] content-type:', req.headers['content-type']);
+
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('[login] Supabase env vars missing');
     res.status(500).json({ error: 'Supabase not configured' });
     return;
   }
   const { email, password, rememberMe } = req.body;
+  console.log('[login] email:', email, '| body keys:', Object.keys(req.body));
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required' });
     return;
@@ -64,9 +72,11 @@ app.post('/api/login', async (req, res) => {
   const supabase = makeSupabase(req, res);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.session) {
+    console.error('[login] Supabase error:', error?.message, error?.status);
     res.status(401).json({ error: 'Invalid email or password' });
     return;
   }
+  console.log('[login] success for:', email);
   const accessMaxAge = rememberMe
     ? 60 * 60 * 24 * 30 * 1000   // 30 days
     : 60 * 60 * 1000;             // 1 hour
