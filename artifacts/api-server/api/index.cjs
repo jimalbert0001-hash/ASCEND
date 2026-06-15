@@ -56,7 +56,7 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'Supabase not configured' });
     return;
   }
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required' });
     return;
@@ -67,11 +67,17 @@ app.post('/api/login', async (req, res) => {
     res.status(401).json({ error: 'Invalid email or password' });
     return;
   }
+  const accessMaxAge = rememberMe
+    ? 60 * 60 * 24 * 30 * 1000   // 30 days
+    : 60 * 60 * 1000;             // 1 hour
+  const refreshMaxAge = rememberMe
+    ? 60 * 60 * 24 * 30 * 1000   // 30 days
+    : 60 * 60 * 24 * 7 * 1000;   // 7 days
   res.cookie('sb-access-token', data.session.access_token, {
-    httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 1000, path: '/',
+    httpOnly: true, secure: true, sameSite: 'lax', maxAge: accessMaxAge, path: '/',
   });
   res.cookie('sb-refresh-token', data.session.refresh_token, {
-    httpOnly: true, secure: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 * 1000, path: '/',
+    httpOnly: true, secure: true, sameSite: 'lax', maxAge: refreshMaxAge, path: '/',
   });
   res.json({ ok: true });
 });

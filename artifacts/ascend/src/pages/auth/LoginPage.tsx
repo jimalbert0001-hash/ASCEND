@@ -3,6 +3,7 @@ import { useState } from 'react';
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +18,7 @@ export function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -66,6 +67,18 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              id="remember-me"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+            />
+            <label htmlFor="remember-me" className="text-sm text-muted-foreground cursor-pointer select-none">
+              Remember me for 30 days
+            </label>
           </div>
           {error && (
             <p className="text-sm text-destructive">{error}</p>
