@@ -61,6 +61,9 @@ function Router() {
       <Route path="/">
         <ProtectedRoute><AppShell><DashboardPage /></AppShell></ProtectedRoute>
       </Route>
+      <Route path="/dashboard">
+        <Redirect to="/" />
+      </Route>
 
       <Route path="/academics">
         <ProtectedRoute><AppShell><AcademicsOverview /></AppShell></ProtectedRoute>
