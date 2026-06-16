@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { MessageBubble } from './MessageBubble';
 import { CoachSelector, COACHES } from './CoachSelector';
 import { useAIStore, type CoachRole } from '@/stores/ai.store';
-import { sendChatMessageStream, checkProviderStatus } from '@/lib/ai-api';
+import { sendChatMessageStream } from '@/lib/ai-api';
 import type { AIMessage } from '@/lib/ai-api';
 
 const ROLE_STARTERS: Record<CoachRole, string[]> = {
@@ -80,18 +80,12 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
 
   const [input, setInput] = useState('');
   const [abortController, setAbortController] = useState<AbortController | null>(null);
-  const [providerStatus, setProviderStatus] = useState<ProviderStatus | null>(null);
+  const [providerStatus] = useState<ProviderStatus>({ provider: 'OpenRouter', configured: true, envVar: 'OPENAI_API_KEY' });
   const [showRoleSelector, setShowRoleSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const activeConversation = conversations.find((c) => c.id === activeConversationId) ?? null;
-
-  useEffect(() => {
-    checkProviderStatus()
-      .then(setProviderStatus)
-      .catch(() => setProviderStatus(null));
-  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
