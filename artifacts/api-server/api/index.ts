@@ -161,9 +161,59 @@ app.get('/api/auth/callback', async (req: Request, res: Response) => {
   res.redirect(FRONTEND_URL);
 });
 
+// Auth — email/password login
+app.post('/api/login', async (req: Request, res: Response) => {
+  const { email, password } = req.body as { email?: string; password?: string };
+  if (!email || !password) {
+    res.status(400).json({ error: 'Email and password are required' });
+    return;
+  }
+  const supabase = createSupabaseServerClient(req, res);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.session) {
+    res.status(401).json({ error: error?.message ?? 'Invalid email or password' });
+    return;
+  }
+  res.json({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+  });
+});
+
+// Auth — refresh token
+app.post('/api/auth/refresh', async (req: Request, res: Response) => {
+  const { refresh_token } = req.body as { refresh_token?: string };
+  if (!refresh_token) {
+    res.status(400).json({ error: 'refresh_token is required' });
+    return;
+  }
+  const supabase = createSupabaseServerClient(req, res);
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token });
+  if (error || !data.session) {
+    res.status(401).json({ error: error?.message ?? 'Could not refresh session' });
+    return;
+  }
+  res.json({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+    user: data.user
+      ? {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.['full_name'] ?? data.user.user_metadata?.['name'] ?? null,
+          profileImageUrl: data.user.user_metadata?.['avatar_url'] ?? null,
+        }
+      : null,
+  });
+});
+
 // Auth — get current user
 app.get('/api/auth/user', async (req: Request, res: Response) => {
-  const accessToken = req.cookies?.['sb-access-token'] as string | undefined;
+  // Accept token from Authorization header (Bearer) or cookie
+  const authHeader = req.headers['authorization'] as string | undefined;
+  const accessToken =
+    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined) ??
+    (req.cookies?.['sb-access-token'] as string | undefined);
   const refreshToken = req.cookies?.['sb-refresh-token'] as string | undefined;
 
   if (!accessToken) {
