@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Rocket, Users, DollarSign, TrendingUp, ChevronRight, Plus, Star, Bug, Lightbulb, FolderKanban } from "lucide-react";
+import { GoalsBanner } from "@/components/GoalsBanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,10 @@ export function StartupOverview() {
           </Button>
         </Link>
       </motion.header>
+
+      <motion.div variants={fadeUp} initial="initial" animate="animate">
+        <GoalsBanner category="startup" />
+      </motion.div>
 
       {/* Hero Stats */}
       <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-4 gap-3">

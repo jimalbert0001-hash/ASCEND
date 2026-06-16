@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Crown, Puzzle, Clock, TrendingUp, Target, ChevronRight, BookOpen, Trophy, Swords, Plus, CheckCircle2 } from "lucide-react";
+import { GoalsBanner } from "@/components/GoalsBanner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -262,6 +263,10 @@ export function ChessOverview() {
         <Button onClick={() => setLogModal(true)} className="bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border-0 gap-2">
           <Plus className="w-4 h-4" /> Log Session
         </Button>
+      </motion.div>
+
+      <motion.div variants={fadeUp}>
+        <GoalsBanner category="chess" />
       </motion.div>
 
       <motion.div variants={fadeUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">

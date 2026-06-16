@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Music, Clock, ListMusic, Star, ChevronRight, TrendingUp, Play, Plus, CheckCircle2 } from "lucide-react";
+import { GoalsBanner } from "@/components/GoalsBanner";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -209,6 +210,10 @@ export function GuitarOverview() {
         <Button onClick={() => setLogModal(true)} className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-0 gap-2">
           <Plus className="w-4 h-4" /> Log Practice
         </Button>
+      </motion.div>
+
+      <motion.div variants={fadeUp}>
+        <GoalsBanner category="guitar" />
       </motion.div>
 
       <motion.div variants={fadeUp} className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -10,11 +10,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2, Target, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2, Target, Trash2, AlertTriangle, Loader2, Plus, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchChessAccounts, saveChessAccounts } from "@/lib/chess-api";
 import { useStatsStore } from "@/stores/stats.store";
 import { useStreakStore } from "@/stores/streak.store";
+import { useGoalsStore, SUBCATEGORIES, UNITS, GoalCategory } from "@/stores/goals.store";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { setDataCleared } from "@/lib/data-cleared";
 import { fetchGoals, saveGoals } from "@/lib/goals-api";
 import { apiFetch } from "@/lib/api-fetch";
@@ -101,6 +103,43 @@ export function SettingsPage() {
   const { goals, updateGoal, loadGoalsFromServer } = useStatsStore();
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [goalsSaved, setGoalsSaved] = useState(false);
+
+  // New local goals form
+  const { goals: localGoals, addGoal, deleteGoal } = useGoalsStore();
+  const [goalCategory, setGoalCategory] = useState<GoalCategory>('academics');
+  const [goalSubcategory, setGoalSubcategory] = useState('Overall');
+  const [goalValue, setGoalValue] = useState('');
+  const [goalTimeframe, setGoalTimeframe] = useState('1m');
+  const [goalCustomDate, setGoalCustomDate] = useState('');
+  const [goalDescription, setGoalDescription] = useState('');
+
+  function getDeadline(): string {
+    const now = new Date();
+    const add = (days: number) => new Date(now.getTime() + days * 86400000).toISOString().split('T')[0];
+    switch (goalTimeframe) {
+      case '1w': return add(7);
+      case '2w': return add(14);
+      case '1m': return add(30);
+      case '3m': return add(90);
+      case '6m': return add(180);
+      case 'custom': return goalCustomDate || add(30);
+      default: return add(30);
+    }
+  }
+
+  function handleAddGoal() {
+    if (!goalValue || isNaN(Number(goalValue))) return;
+    addGoal({
+      category: goalCategory,
+      subcategory: goalSubcategory,
+      targetValue: Number(goalValue),
+      unit: UNITS[goalSubcategory] ?? '%',
+      deadline: getDeadline(),
+      description: goalDescription,
+    });
+    setGoalValue('');
+    setGoalDescription('');
+  }
 
   useEffect(() => {
     if (!user?.id) return;
@@ -406,71 +445,165 @@ export function SettingsPage() {
           </Button>
         </Card>
 
-        {/* Goals Management */}
+        {/* Goals */}
         <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-1">
             <Target className="w-4 h-4 text-primary" />
             <h3 className="text-lg font-bold">Goals</h3>
           </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            Edit your targets for each domain. Changes sync across the dashboard.
+          <p className="text-xs text-muted-foreground mb-5">
+            Set targets across your domains. Goals appear on each section's overview and the dashboard.
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            {goals.map((goal) => (
-              <div key={goal.id} className="bg-muted/50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className={cn("w-2 h-2 rounded-full", getDomainColor(goal.domain))} />
-                  <span className="text-xs font-medium text-muted-foreground uppercase">{goal.domain}</span>
-                </div>
-                <div>
-                  <Label className="text-xs mb-1 block">Title</Label>
-                  <EditableField
-                    value={goal.title}
-                    onSave={(val) => updateGoal(goal.id, { title: String(val) })}
-                    type="text"
-                    className="text-sm font-semibold"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs mb-1 block">Progress</Label>
-                    <EditableField
-                      value={goal.progress}
-                      onSave={(val) => updateGoal(goal.id, { progress: Number(val) })}
-                      min={0}
-                      max={100}
-                      suffix="%"
-                      className="text-sm"
-                      compact
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs mb-1 block">Target</Label>
-                    <EditableField
-                      value={goal.targetValue ?? 0}
-                      onSave={(val) => updateGoal(goal.id, { targetValue: Number(val) })}
-                      className="text-sm"
-                      compact
-                    />
-                  </div>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={cn("h-full", getDomainColor(goal.domain))}
-                    style={{ width: `${goal.progress}%` }}
-                  />
-                </div>
+
+          {/* Add Goal Form */}
+          <div className="space-y-3 p-4 rounded-xl bg-muted/20 border border-border/40 mb-5">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">New Goal</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs mb-1.5 block">Category</Label>
+                <Select
+                  value={goalCategory}
+                  onValueChange={(v) => {
+                    setGoalCategory(v as GoalCategory);
+                    setGoalSubcategory(SUBCATEGORIES[v as GoalCategory][0]);
+                  }}
+                >
+                  <SelectTrigger className="bg-background/50 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="academics">Academics</SelectItem>
+                    <SelectItem value="startup">Startup</SelectItem>
+                    <SelectItem value="chess">Chess</SelectItem>
+                    <SelectItem value="guitar">Guitar</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ))}
+              <div>
+                <Label className="text-xs mb-1.5 block">Subcategory</Label>
+                <Select value={goalSubcategory} onValueChange={setGoalSubcategory}>
+                  <SelectTrigger className="bg-background/50 h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SUBCATEGORIES[goalCategory].map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs mb-1.5 block">
+                  Target Value
+                  <span className="ml-1 text-muted-foreground font-normal">({UNITS[goalSubcategory] ?? '%'})</span>
+                </Label>
+                <Input
+                  type="number"
+                  value={goalValue}
+                  onChange={e => setGoalValue(e.target.value)}
+                  placeholder="e.g. 1500"
+                  className="bg-background/50 h-9"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1.5 block">Timeframe</Label>
+                <div className="flex flex-wrap gap-1">
+                  {(['1w', '2w', '1m', '3m', '6m'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setGoalTimeframe(t)}
+                      className={cn(
+                        'px-2 py-1 rounded text-xs border transition-all',
+                        goalTimeframe === t
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'border-border text-muted-foreground hover:border-primary/50'
+                      )}
+                    >{t}</button>
+                  ))}
+                  <button
+                    onClick={() => setGoalTimeframe('custom')}
+                    className={cn(
+                      'px-2 py-1 rounded text-xs border transition-all flex items-center gap-1',
+                      goalTimeframe === 'custom'
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/50'
+                    )}
+                  >
+                    <Calendar className="w-3 h-3" />date
+                  </button>
+                </div>
+                {goalTimeframe === 'custom' && (
+                  <Input
+                    type="date"
+                    value={goalCustomDate}
+                    onChange={e => setGoalCustomDate(e.target.value)}
+                    className="bg-background/50 h-9 mt-2"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-1.5 block">
+                Description <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Input
+                value={goalDescription}
+                onChange={e => setGoalDescription(e.target.value)}
+                placeholder="e.g. Reach 1500 blitz on Lichess by end of term"
+                className="bg-background/50 h-9"
+              />
+            </div>
+
+            <Button
+              onClick={handleAddGoal}
+              disabled={!goalValue || isNaN(Number(goalValue))}
+              size="sm"
+              className="gap-2 w-full sm:w-auto"
+            >
+              <Plus className="w-3.5 h-3.5" />Add Goal
+            </Button>
           </div>
-          <Button
-            onClick={handleSaveGoals}
-            disabled={goalsLoading}
-            className="gap-2"
-            size="sm"
-          >
-            {goalsSaved ? <CheckCircle2 className="w-4 h-4" /> : goalsLoading ? 'Saving...' : 'Save Goals'}
-          </Button>
+
+          {/* Active goals list */}
+          {localGoals.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Active Goals</p>
+              {localGoals.map(goal => (
+                <div key={goal.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <span className={cn(
+                        'text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border',
+                        goal.category === 'academics' ? 'text-blue-400 border-blue-500/30 bg-blue-500/5' :
+                        goal.category === 'chess'     ? 'text-purple-400 border-purple-500/30 bg-purple-500/5' :
+                        goal.category === 'guitar'    ? 'text-green-400 border-green-500/30 bg-green-500/5' :
+                        'text-orange-400 border-orange-500/30 bg-orange-500/5'
+                      )}>
+                        {goal.category}
+                      </span>
+                      <span className="text-sm font-semibold">{goal.subcategory}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {goal.targetValue.toLocaleString()} {goal.unit} · due {new Date(goal.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </p>
+                    {goal.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{goal.description}</p>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-7 h-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => deleteGoal(goal.id)}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-4">No goals yet. Add one above.</p>
+          )}
         </Card>
 
         {/* Notifications */}

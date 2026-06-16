@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { subjectsData, getSubjectStats, getTotalStats } from "@/lib/academics-data";
+import { GoalsBanner } from "@/components/GoalsBanner";
 import { logStudySession, fetchAcademicsData } from "@/lib/log-api";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -229,6 +230,10 @@ export function AcademicsOverview() {
           <Plus className="w-4 h-4" />Log Session
         </Button>
       </motion.header>
+
+      <motion.div variants={fadeUp} initial="initial" animate="animate">
+        <GoalsBanner category="academics" />
+      </motion.div>
 
       <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Clock} label="Hours Studied" value={`${displayHours}h`} sub="All sessions" />
