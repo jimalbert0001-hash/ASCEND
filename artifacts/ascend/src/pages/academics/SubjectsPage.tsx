@@ -187,9 +187,13 @@ function LogSessionModal({ open, onClose, subjectId }: { open: boolean; onClose:
 
 export function SubjectsPage() {
   const search = useSearch();
-  const params = new URLSearchParams(search);
-  const initialSubject = params.get('subject') ?? subjectsData[0].id;
+  const initialSubject = new URLSearchParams(search).get('subject') ?? subjectsData[0].id;
   const [activeId, setActiveId] = useState(initialSubject);
+
+  useEffect(() => {
+    const subjectFromUrl = new URLSearchParams(search).get('subject');
+    if (subjectFromUrl) setActiveId(subjectFromUrl);
+  }, [search]);
   const [logModal, setLogModal] = useState(false);
   const [subjects, setSubjects] = useState(() => isDataCleared() ? getClearedSubjectsData() : subjectsData);
   const { user } = useAuth();
