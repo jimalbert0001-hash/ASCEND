@@ -280,7 +280,7 @@ export function SubjectsPage() {
 
         {/* Chapter List */}
         <div className="mt-4 space-y-2">
-          {subject.id === 'eng' ? (() => {
+          {(subject.id === 'eng' || subject.id === 'cs') ? (() => {
             const SEP = ' — ';
             type Group = { label: string; chapters: { chapter: Chapter; displayName: string }[] };
             const groups: Group[] = [];
