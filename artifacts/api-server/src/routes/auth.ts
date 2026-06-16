@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { createSupabaseServerClient } from '../lib/supabase.js';
 
 const router = Router();
@@ -6,7 +6,7 @@ const router = Router();
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://ascend-frontend-git-main-ascend-v1.vercel.app';
 const API_URL = process.env.API_URL || 'http://localhost:3000';
 
-router.get('/login', async (req, res) => {
+router.get('/login', async (req: Request, res: Response) => {
   const supabase = createSupabaseServerClient(req, res);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -22,7 +22,7 @@ router.get('/login', async (req, res) => {
   res.redirect(data.url);
 });
 
-router.get('/auth/callback', async (req, res) => {
+router.get('/auth/callback', async (req: Request, res: Response) => {
   const code = req.query['code'] as string | undefined;
   if (!code) {
     res.redirect(`${FRONTEND_URL}/login?error=no_code`);
@@ -51,7 +51,7 @@ router.get('/auth/callback', async (req, res) => {
   res.redirect(FRONTEND_URL);
 });
 
-router.get('/auth/user', async (req, res) => {
+router.get('/auth/user', async (req: Request, res: Response) => {
   const accessToken = req.cookies?.['sb-access-token'] as string | undefined;
   const refreshToken = req.cookies?.['sb-refresh-token'] as string | undefined;
 
@@ -111,7 +111,7 @@ router.get('/auth/user', async (req, res) => {
   res.status(401).json({ error: 'Session expired' });
 });
 
-router.get('/logout', (_req, res) => {
+router.get('/logout', (_req: Request, res: Response) => {
   res.clearCookie('sb-access-token', { path: '/' });
   res.clearCookie('sb-refresh-token', { path: '/' });
   res.redirect(`${FRONTEND_URL}/login`);
