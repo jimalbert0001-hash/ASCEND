@@ -1,11 +1,11 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { isDataCleared } from './data-cleared';
-import { subjectsData, studySessionsData, mockTestsData, Subject, Chapter, StudySession, MockTest } from './academics-data';
+import { subjectsData, getClearedSubjectsData, studySessionsData, mockTestsData, Subject, Chapter, StudySession, MockTest } from './academics-data';
 
 const isMock = !isSupabaseConfigured;
 
 export async function getSubjects(userId: string): Promise<Subject[]> {
-  if (isMock) return isDataCleared() ? [] : subjectsData;
+  if (isMock) return isDataCleared() ? getClearedSubjectsData() : subjectsData;
   try {
     const { data, error } = await supabase.from('subjects').select('*, chapters(*, revisions(*))').eq('user_id', userId);
     if (error) throw error;
