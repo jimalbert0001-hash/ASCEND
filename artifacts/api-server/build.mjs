@@ -20,7 +20,6 @@ async function buildAll() {
   await esbuild({
     entryPoints: [
       { in: path.resolve(artifactDir, "src/index.ts"), out: "dist/index" },
-      { in: path.resolve(artifactDir, "src/vercel.ts"), out: "api/index" },
     ],
     platform: "node",
     bundle: true,
