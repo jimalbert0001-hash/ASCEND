@@ -1,10 +1,10 @@
 {
-  "include": ["src"],
+  "include": ["src", "api"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": ".tsbuildinfo",
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "types": ["node"],
     "isolatedModules": true,
     "module": "esnext",
