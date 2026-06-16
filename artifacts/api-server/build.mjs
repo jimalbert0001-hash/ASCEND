@@ -15,7 +15,6 @@ async function buildAll() {
   const apiDir = path.resolve(artifactDir, "api");
 
   await rm(distDir, { recursive: true, force: true });
-  await rm(apiDir, { recursive: true, force: true });
   await mkdir(apiDir, { recursive: true });
 
   await esbuild({
