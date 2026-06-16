@@ -26,6 +26,28 @@ const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } }
 
 const defaultOp = { name: '', eco: '', color: 'white' as 'white' | 'black', moves: '', winRate: 50, gamesPlayed: 0, status: 'learning' as OpeningStatus, notes: '', tags: [] as string[] };
 
+const STARTER_OPENINGS: Omit<ChessOpening, 'id'>[] = [
+  { name: "King's Pawn Opening", eco: 'B00', color: 'white', moves: '1.e4', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'The most popular first move. Controls the centre and opens lines for bishop and queen.', tags: ['e4', 'beginner', 'centre-control'] },
+  { name: 'Italian Game', eco: 'C50', color: 'white', moves: '1.e4 e5 2.Nf3 Nc6 3.Bc4', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Develops bishop to active square targeting f7. One of the oldest openings.', tags: ['e4', 'classical', 'beginner'] },
+  { name: 'Ruy Lopez (Spanish Game)', eco: 'C60', color: 'white', moves: '1.e4 e5 2.Nf3 Nc6 3.Bb5', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Pins the knight defending e5. One of the most played openings at all levels.', tags: ['e4', 'classical', 'aggressive'] },
+  { name: "Queen's Gambit", eco: 'D06', color: 'white', moves: '1.d4 d5 2.c4', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Offers a pawn to gain centre control. Not a true gambit as the pawn can be easily recovered.', tags: ['d4', 'positional', 'classical'] },
+  { name: 'London System', eco: 'D02', color: 'white', moves: '1.d4 2.Nf3 3.Bf4', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'A solid, easy-to-learn system. Bishop developed outside the pawn chain early.', tags: ['d4', 'solid', 'positional'] },
+  { name: "Scholar's Mate Attempt", eco: 'C20', color: 'white', moves: '1.e4 e5 2.Bc4 Nc6 3.Qh5', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Attempts quick checkmate on f7. Easily refuted by experienced players but good to know.', tags: ['e4', 'trap', 'beginner'] },
+  { name: 'Sicilian Defense', eco: 'B20', color: 'black', moves: '1.e4 c5', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Most popular reply to 1.e4. Creates imbalanced positions with winning chances for both sides.', tags: ['e4', 'aggressive', 'popular'] },
+  { name: 'French Defense', eco: 'C00', color: 'black', moves: '1.e4 e6', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Solid but slightly passive. Leads to closed positions with counterplay on the queenside.', tags: ['e4', 'solid', 'positional'] },
+  { name: 'Caro-Kann Defense', eco: 'B10', color: 'black', moves: '1.e4 c6', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Very solid reply to 1.e4. Similar to French but avoids blocking the dark-squared bishop.', tags: ['e4', 'solid', 'classical'] },
+  { name: "King's Indian Defense", eco: 'E60', color: 'black', moves: '1.d4 Nf6 2.c4 g6 3.Nc3 Bg7', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Allows White to build a big centre then attacks it. Used by Kasparov and Fischer.', tags: ['d4', 'aggressive', 'hypermodern'] },
+  { name: "Defense against Scholar's Mate", eco: 'C20', color: 'black', moves: '1.e4 e5 2.Qh5 Nc6 3.Bc4 g6 4.Qf3 Nf6', winRate: 0, gamesPlayed: 0, status: 'learning', notes: 'Correct way to defend against Scholar\'s Mate attempt. Develop and block the queen.', tags: ['defensive', 'trap-busting', 'beginner'] },
+];
+
+const STARTER_ENDGAMES: Omit<EndgameStudy, 'id'>[] = [
+  { title: 'King and Queen vs King', category: 'queen', status: 'not_started', difficulty: 1, notes: 'Basic checkmate. Use queen to restrict king to edge, bring your king close to help.' },
+  { title: 'King and Rook vs King', category: 'rook', status: 'not_started', difficulty: 2, notes: 'Slightly harder than K+Q. Use rook to cut off files, drive enemy king to edge.' },
+  { title: 'King and Pawn Endgames', category: 'king_pawn', status: 'not_started', difficulty: 2, notes: 'Most important endgame. Understand opposition and the square of the pawn.' },
+];
+
+const INIT_FLAG = 'openings-initialized';
+
 export function OpeningsPage() {
   const [openings, setOpenings] = useState<ChessOpening[]>(() => isDataCleared() ? [] : initOpenings);
   const [endgames, setEndgames] = useState<EndgameStudy[]>(() => isDataCleared() ? [] : initEndgames);
@@ -36,8 +58,20 @@ export function OpeningsPage() {
   const userId = user?.id ?? 'mock-user-1';
 
   useEffect(() => {
-    getOpenings(userId).then(data => setOpenings(data));
-    getEndgameStudies(userId).then(data => setEndgames(data));
+    async function loadAndSeed() {
+      const [ops, egs] = await Promise.all([getOpenings(userId), getEndgameStudies(userId)]);
+      if (ops.length === 0 && egs.length === 0 && !localStorage.getItem(INIT_FLAG)) {
+        localStorage.setItem(INIT_FLAG, '1');
+        const createdOps = await Promise.all(STARTER_OPENINGS.map(op => createOpening(userId, op)));
+        const createdEgs = await Promise.all(STARTER_ENDGAMES.map(eg => createEndgameStudy(userId, eg)));
+        setOpenings(createdOps);
+        setEndgames(createdEgs);
+      } else {
+        setOpenings(ops);
+        setEndgames(egs);
+      }
+    }
+    loadAndSeed();
   }, [userId]);
 
   async function saveOpening() {
