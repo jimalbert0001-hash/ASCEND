@@ -49,7 +49,16 @@ function FormulaRow({ formula }: { formula: Formula }) {
   );
 }
 
-function ChapterRow({ chapter, color }: { chapter: Chapter; color: string }) {
+function SectionHeader({ label, color }: { label: string; color: string }) {
+  return (
+    <div className={cn("flex items-center gap-3 pt-2 pb-1 px-1")}>
+      <span className={cn("text-xs font-semibold uppercase tracking-widest", COLOR_TEXT[color])}>{label}</span>
+      <div className="flex-1 h-px bg-border/30" />
+    </div>
+  );
+}
+
+function ChapterRow({ chapter, color, displayName }: { chapter: Chapter; color: string; displayName?: string }) {
   const [expanded, setExpanded] = useState(false);
   const [completed, setCompleted] = useState(chapter.isCompleted);
   const dueToday = chapter.nextRevision && new Date(chapter.nextRevision) <= new Date();
@@ -69,7 +78,7 @@ function ChapterRow({ chapter, color }: { chapter: Chapter; color: string }) {
           {chapter.chapterNumber}
         </span>
         <div className="flex-1 min-w-0">
-          <p className={cn("text-sm font-medium truncate", completed && "line-through text-muted-foreground/60")}>{chapter.name}</p>
+          <p className={cn("text-sm font-medium truncate", completed && "line-through text-muted-foreground/60")}>{displayName ?? chapter.name}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <UnderstandingStars level={chapter.understandingLevel} color={color} />
             <span className="text-xs text-muted-foreground">·</span>
@@ -271,7 +280,38 @@ export function SubjectsPage() {
 
         {/* Chapter List */}
         <div className="mt-4 space-y-2">
-          {subject.chapters.map((chapter, i) => (
+          {subject.id === 'eng' ? (() => {
+            const SEP = ' — ';
+            type Group = { label: string; chapters: { chapter: Chapter; displayName: string }[] };
+            const groups: Group[] = [];
+            subject.chapters.forEach((chapter, _i) => {
+              const sepIdx = chapter.name.indexOf(SEP);
+              const label = sepIdx !== -1 ? chapter.name.slice(0, sepIdx) : 'General';
+              const displayName = sepIdx !== -1 ? chapter.name.slice(sepIdx + SEP.length) : chapter.name;
+              const last = groups[groups.length - 1];
+              if (last && last.label === label) {
+                last.chapters.push({ chapter, displayName });
+              } else {
+                groups.push({ label, chapters: [{ chapter, displayName }] });
+              }
+            });
+            let globalIdx = 0;
+            return groups.map(group => (
+              <div key={group.label}>
+                <SectionHeader label={group.label} color={subject.color} />
+                <div className="space-y-2">
+                  {group.chapters.map(({ chapter, displayName }) => {
+                    const i = globalIdx++;
+                    return (
+                      <motion.div key={chapter.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                        <ChapterRow chapter={chapter} color={subject.color} displayName={displayName} />
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            ));
+          })() : subject.chapters.map((chapter, i) => (
             <motion.div key={chapter.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
               <ChapterRow chapter={chapter} color={subject.color} />
             </motion.div>
