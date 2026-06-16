@@ -1,0 +1,1 @@
+- [ASCEND reset fix](ascend-reset-fix.md) — static data files bypass isDataCleared(); fix is in data helpers + component guards, not just Zustand stores.

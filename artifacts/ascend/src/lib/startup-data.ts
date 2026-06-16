@@ -1,3 +1,5 @@
+import { isDataCleared } from "@/lib/data-cleared";
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ProjectStage = 'idea' | 'mvp' | 'growth' | 'scaling';
@@ -306,6 +308,9 @@ export const userMetricsData: UserMetricEntry[] = [
 // ─── Stats helpers ────────────────────────────────────────────────────────────
 
 export function getProjectStats(projectId: string) {
+  if (isDataCleared()) {
+    return { totalUsers: 0, activeUsers: 0, mrr: 0, mrrGrowth: 0, userGrowth: 0, retention: 0, conversion: 0 };
+  }
   const rev = revenueData.filter(r => r.projectId === projectId);
   const users = userMetricsData.filter(u => u.projectId === projectId);
   const latest = users[users.length - 1];
@@ -325,6 +330,9 @@ export function getProjectStats(projectId: string) {
 }
 
 export function getOverallStats() {
+  if (isDataCleared()) {
+    return { activeProjects: 0, totalUsers: 0, totalMrr: 0, openBugs: 0, ideasCount: 0 };
+  }
   const activeProjects = projectsData.filter(p => p.status === 'active').length;
   const totalUsers = projectsData.reduce((sum, p) => {
     const u = userMetricsData.filter(m => m.projectId === p.id);

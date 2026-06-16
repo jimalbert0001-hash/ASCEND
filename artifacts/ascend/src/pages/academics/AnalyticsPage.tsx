@@ -6,6 +6,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { subjectsData, studySessionsData, mockTestsData, getSubjectStats, getTotalStats } from "@/lib/academics-data";
+import { isDataCleared } from "@/lib/data-cleared";
 import { cn } from "@/lib/utils";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
@@ -13,6 +14,7 @@ const fadeUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, tr
 const SUBJECT_COLOR: Record<string, string> = { blue: '#3b82f6', purple: '#a855f7', cyan: '#06b6d4', green: '#22c55e', orange: '#f97316' };
 
 function buildDailyHours() {
+  if (isDataCleared()) return [];
   const map: Record<string, number> = {};
   studySessionsData.forEach(s => {
     map[s.date] = (map[s.date] ?? 0) + s.durationMins / 60;
@@ -31,6 +33,7 @@ function buildSubjectHours() {
 }
 
 function buildMockTrend() {
+  if (isDataCleared()) return [];
   return subjectsData.slice(0, 3).map(s => {
     const tests = mockTestsData.filter(t => t.subjectId === s.id).sort((a, b) => a.date.localeCompare(b.date));
     return { name: s.name, color: SUBJECT_COLOR[s.color], data: tests.map((t, i) => ({ test: `Test ${i + 1}`, pct: Math.round(t.obtainedMarks / t.totalMarks * 100) })) };
@@ -45,6 +48,12 @@ function buildCompletionData() {
 }
 
 function buildUnderstandingHeatmap() {
+  if (isDataCleared()) {
+    return subjectsData.map(s => ({
+      subject: s,
+      chapters: s.chapters.map(c => ({ name: c.name, level: 0, completed: false })),
+    }));
+  }
   return subjectsData.map(s => ({
     subject: s,
     chapters: s.chapters.map(c => ({ name: c.name, level: c.understandingLevel, completed: c.isCompleted })),
@@ -71,14 +80,15 @@ export function AnalyticsPage() {
   const completionData = buildCompletionData();
   const heatmap = buildUnderstandingHeatmap();
 
+  const cleared = isDataCleared();
   const totalDailyHours = dailyHours.reduce((s, d) => s + d.hours, 0);
   const avgPerDay = totalDailyHours / (dailyHours.length || 1);
-  const bestSubject = subjectsData.reduce((best, s) => {
+  const bestSubject = cleared ? subjectsData[0] : subjectsData.reduce((best, s) => {
     const stats = getSubjectStats(s);
     const bestStats = getSubjectStats(best);
     return stats.completionPct > bestStats.completionPct ? s : best;
   });
-  const weakestSubject = subjectsData.reduce((weak, s) => {
+  const weakestSubject = cleared ? subjectsData[0] : subjectsData.reduce((weak, s) => {
     const tests = mockTestsData.filter(t => t.subjectId === s.id);
     const avg = tests.length ? tests.reduce((a, t) => a + t.obtainedMarks / t.totalMarks * 100, 0) / tests.length : 100;
     const weakTests = mockTestsData.filter(t => t.subjectId === weak.id);

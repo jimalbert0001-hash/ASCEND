@@ -1,3 +1,5 @@
+import { isDataCleared } from "@/lib/data-cleared";
+
 export type Formula = {
   id: string;
   chapterId: string;
@@ -268,7 +270,25 @@ export const mockTestsData: MockTest[] = [
   { id: 'm8', subjectId: null, name: 'Full Syllabus Mock #1', date: daysAgo(7), totalMarks: 500, obtainedMarks: 347, timeTakenMins: 540, weakTopics: ['Wave Optics', 'Biomolecules', 'Probability', 'Semiconductors'], notes: 'Overall 69.4%. Target is 95%. 25.6% gap to close' },
 ];
 
+export function getClearedSubjectsData(): Subject[] {
+  return subjectsData.map(s => ({
+    ...s,
+    chapters: s.chapters.map(c => ({
+      ...c,
+      isCompleted: false,
+      understandingLevel: 1,
+      actualHours: 0,
+      revisionCount: 0,
+      nextRevision: null,
+      lastStudied: null,
+    })),
+  }));
+}
+
 export function getSubjectStats(subject: Subject) {
+  if (isDataCleared()) {
+    return { completed: 0, total: subject.chapters.length, completionPct: 0, totalHours: 0, avgUnderstanding: 0, dueRevisions: 0 };
+  }
   const completed = subject.chapters.filter(c => c.isCompleted).length;
   const total = subject.chapters.length;
   const completionPct = Math.round((completed / total) * 100);
@@ -279,6 +299,11 @@ export function getSubjectStats(subject: Subject) {
 }
 
 export function getTotalStats() {
+  if (isDataCleared()) {
+    const boardDate = new Date('2027-03-01');
+    const daysUntilBoards = Math.ceil((boardDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    return { totalHours: 0, avgCompletion: 0, avgMockScore: 0, predictedScore: 0, daysUntilBoards, dueRevisions: 0 };
+  }
   const allSubjectStats = subjectsData.map(s => getSubjectStats(s));
   const totalHours = allSubjectStats.reduce((s, x) => s + x.totalHours, 0);
   const avgCompletion = Math.round(allSubjectStats.reduce((s, x) => s + x.completionPct, 0) / subjectsData.length);

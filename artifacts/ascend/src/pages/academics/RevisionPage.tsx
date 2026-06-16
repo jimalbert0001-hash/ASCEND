@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { subjectsData, Chapter, Subject } from "@/lib/academics-data";
+import { isDataCleared } from "@/lib/data-cleared";
 import { cn } from "@/lib/utils";
 
 const stagger = { animate: { transition: { staggerChildren: 0.06 } } };
@@ -21,6 +22,7 @@ const SM2_INTERVALS = [1, 3, 7, 14, 21, 30];
 type RevisionItem = { subject: Subject; chapter: Chapter; status: 'overdue' | 'today' | 'upcoming'; daysUntil: number };
 
 function getRevisionItems(): RevisionItem[] {
+  if (isDataCleared()) return [];
   const items: RevisionItem[] = [];
   const now = new Date();
   now.setHours(0, 0, 0, 0);

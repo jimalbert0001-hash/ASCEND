@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { subjectsData, Chapter, Formula, getSubjectStats } from "@/lib/academics-data";
+import { subjectsData, getClearedSubjectsData, Chapter, Formula, getSubjectStats } from "@/lib/academics-data";
 import { createStudySession, getSubjects } from "@/lib/academics-supabase";
 import { useAuth } from "@/providers/AuthProvider";
 import { isDataCleared } from "@/lib/data-cleared";
@@ -191,7 +191,7 @@ export function SubjectsPage() {
   const initialSubject = params.get('subject') ?? subjectsData[0].id;
   const [activeId, setActiveId] = useState(initialSubject);
   const [logModal, setLogModal] = useState(false);
-  const [subjects, setSubjects] = useState(() => isDataCleared() ? [] : subjectsData);
+  const [subjects, setSubjects] = useState(() => isDataCleared() ? getClearedSubjectsData() : subjectsData);
   const { user } = useAuth();
   const userId = user?.id ?? 'mock-user-1';
 
@@ -199,7 +199,7 @@ export function SubjectsPage() {
     getSubjects(userId).then(data => setSubjects(data));
   }, [userId]);
 
-  const subject = subjects.find(s => s.id === activeId) ?? subjects[0] ?? subjectsData[0];
+  const subject = subjects.find(s => s.id === activeId) ?? subjects[0] ?? getClearedSubjectsData()[0];
   const stats = getSubjectStats(subject);
   const SubjectIcon = ICONS[subject.icon] ?? BookOpen;
 

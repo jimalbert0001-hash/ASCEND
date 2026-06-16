@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { getGuitarStats, skillAreas } from "@/lib/guitar-data";
+import { getGuitarStats, getSkillAreasData } from "@/lib/guitar-data";
 import { logGuitarSession, fetchGuitarData } from "@/lib/log-api";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -236,7 +236,7 @@ export function GuitarOverview() {
             <h3 className="font-semibold text-sm">Skill Progression</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {skillAreas.map(skill => (
+            {getSkillAreasData().map(skill => (
               <div key={skill.id} className="flex items-center gap-3">
                 <span className="text-xs font-medium w-36 shrink-0">{skill.name}</span>
                 <div className="flex-1">

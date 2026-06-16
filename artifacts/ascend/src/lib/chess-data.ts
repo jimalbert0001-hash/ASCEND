@@ -1,3 +1,5 @@
+import { isDataCleared } from "@/lib/data-cleared";
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type ChessPlatform = 'lichess' | 'chess.com' | 'otb';
@@ -183,6 +185,14 @@ export type ChessStats = {
 };
 
 export function getChessStats(): ChessStats {
+  if (isDataCleared()) {
+    return {
+      currentRating: 0, ratingChange: 0, ratingGoal: 1800,
+      totalPuzzles: 0, avgAccuracy: 0, trainingHours: 0, trainingDays: 0,
+      wins: 0, losses: 0, draws: 0, winRate: 0, totalGames: 0,
+      tournamentsPlayed: 0, openingsMastered: 0, endgamesMastered: 0,
+    };
+  }
   const latest = ratingHistory[ratingHistory.length - 1];
   const prev = ratingHistory[ratingHistory.length - 2];
   const totalPuzzles = puzzleSessions.reduce((s, p) => s + p.puzzlesSolved, 0);

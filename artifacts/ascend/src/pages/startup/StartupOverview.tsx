@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  projectsData, ideasData, bugsData, revenueData, userMetricsData,
+  projectsData, ideasData, revenueData,
   getOverallStats, getProjectStats, STAGE_LABELS,
 } from "@/lib/startup-data";
+import { isDataCleared } from "@/lib/data-cleared";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
 const fadeUp = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -59,8 +60,10 @@ function MiniBar({ pct, color }: { pct: number; color: string }) {
 }
 
 export function StartupOverview() {
+  const cleared = isDataCleared();
   const overall = getOverallStats();
-  const activeProjects = projectsData.filter(p => p.status === 'active');
+  const activeProjects = cleared ? [] : projectsData.filter(p => p.status === 'active');
+  const displayIdeas = cleared ? [] : ideasData.slice(0, 3);
 
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-6xl mx-auto">
@@ -186,7 +189,7 @@ export function StartupOverview() {
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {ideasData.slice(0, 3).map(idea => {
+          {displayIdeas.map(idea => {
             const statusColors: Record<string, string> = {
               raw: 'text-muted-foreground bg-muted/30',
               refined: 'text-amber-400 bg-amber-500/10',
@@ -226,7 +229,7 @@ export function StartupOverview() {
       {/* Bottom nav cards */}
       <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { href: '/startup/projects', icon: FolderKanban, label: 'Projects & Ideas', sub: `${projectsData.length} projects`, color: 'text-violet-400 bg-violet-500/10' },
+          { href: '/startup/projects', icon: FolderKanban, label: 'Projects & Ideas', sub: `${cleared ? 0 : projectsData.length} projects`, color: 'text-violet-400 bg-violet-500/10' },
           { href: '/startup/roadmap', icon: TrendingUp, label: 'Roadmap', sub: 'Q1–Q4 planning', color: 'text-blue-400 bg-blue-500/10' },
           { href: '/startup/features', icon: Lightbulb, label: 'Features & Bugs', sub: `${overall.openBugs} open bugs`, color: 'text-amber-400 bg-amber-500/10' },
           { href: '/startup/metrics', icon: DollarSign, label: 'Metrics', sub: 'Revenue & growth', color: 'text-emerald-400 bg-emerald-500/10' },

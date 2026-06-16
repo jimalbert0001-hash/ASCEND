@@ -1,3 +1,5 @@
+import { isDataCleared } from "@/lib/data-cleared";
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type SongStatus = 'wish_list' | 'learning' | 'repertoire' | 'polished' | 'on_hold';
@@ -174,7 +176,21 @@ export type GuitarStats = {
   totalRecordings: number;
 };
 
+export function getSkillAreasData(): SkillArea[] {
+  if (isDataCleared()) return skillAreas.map(s => ({ ...s, level: 0 }));
+  return skillAreas;
+}
+
 export function getGuitarStats(): GuitarStats {
+  if (isDataCleared()) {
+    return {
+      totalHours: 0, thisMonthMins: 0, thisMonthHours: 0,
+      longestSessionMins: 0, totalSessions: 0, songsLearned: 0,
+      songsRepertoire: 0, chordsMastered: 0, totalChords: 0,
+      currentLevel: 0, avgSkillLevel: 0, scalesMastered: 0,
+      lessonsCompleted: 0, totalRecordings: 0,
+    };
+  }
   const currentMonth = '2026-06';
   const thisMonthSessions = practiceSessions.filter(s => s.date.startsWith(currentMonth));
   const thisMonthMins = thisMonthSessions.reduce((s, p) => s + p.durationMins, 0);

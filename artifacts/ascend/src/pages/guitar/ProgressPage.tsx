@@ -52,6 +52,7 @@ export function ProgressPage() {
     getSkillAreas(userId).then(data => setSkills(data));
   }, [userId]);
 
+  const weekData = isDataCleared() ? [] : practiceByWeek;
   const radarData = skills.map(s => ({ skill: s.name.split(' ')[0], value: s.level, fullMark: 10 }));
 
   async function cycleScale(scale: ScaleProgress) {
@@ -215,13 +216,13 @@ export function ProgressPage() {
           <Card className="p-5 border-border/50 bg-card/60">
             <h3 className="font-semibold text-sm mb-4">Practice by Week (Hours)</h3>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={practiceByWeek}>
+              <BarChart data={weekData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} />
                 <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
                 <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
                 <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}h`, 'Practice']} />
                 <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
-                  {practiceByWeek.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  {weekData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
