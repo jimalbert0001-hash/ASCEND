@@ -505,6 +505,215 @@ app.post('/api/ai/analyze/goals', async (req: Request, res: Response) => {
   } catch { res.status(500).json({ error: 'Failed to analyse goals' }); }
 });
 
+// ── Chess routes ──────────────────────────────────────────────────────────────
+
+function getAccessToken(req: Request): string | undefined {
+  const authHeader = req.headers['authorization'] as string | undefined;
+  return (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined)
+    ?? (req.cookies?.['sb-access-token'] as string | undefined);
+}
+
+interface ChessGameInput {
+  id: string;
+  platform: string;
+  externalId?: string;
+  pgn?: string;
+  fen?: string;
+  result: string;
+  playerColor: string;
+  playerRating?: number;
+  opponentUsername?: string;
+  opponentRating?: number;
+  openingName?: string;
+  openingEco?: string;
+  timeControl?: string;
+  gameDurationSecs?: number;
+  gameDate: string;
+  movesCount?: number;
+  isAnalyzed?: boolean;
+  accuracy?: number;
+  bestMove?: string;
+  worstMove?: string;
+  analysisNotes?: string;
+}
+
+function mapGameRow(g: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: g['id'],
+    platform: g['platform'],
+    externalId: g['external_id'],
+    pgn: g['pgn'],
+    fen: g['fen'],
+    result: g['result'],
+    playerColor: g['player_color'],
+    playerRating: g['player_rating'],
+    opponentUsername: g['opponent_username'],
+    opponentRating: g['opponent_rating'],
+    openingName: g['opening_name'],
+    openingEco: g['opening_eco'],
+    timeControl: g['time_control'],
+    gameDurationSecs: g['game_duration_secs'],
+    gameDate: g['game_date'],
+    movesCount: g['moves_count'],
+    isAnalyzed: g['is_analyzed'],
+    accuracy: g['accuracy'],
+    bestMove: g['best_move'],
+    worstMove: g['worst_move'],
+    analysisNotes: g['analysis_notes'],
+  };
+}
+
+// Chess Accounts — GET
+app.get('/api/chess/accounts/:userId', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const { data, error } = await db.from('chess_accounts').select('*').eq('user_id', req.params['userId']).maybeSingle();
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({
+    chesscomUsername: (data as Record<string, unknown> | null)?.['chesscom_username'] ?? '',
+    lichessUsername: (data as Record<string, unknown> | null)?.['lichess_username'] ?? '',
+  });
+});
+
+// Chess Accounts — PUT (upsert)
+app.put('/api/chess/accounts/:userId', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const { chesscomUsername, lichessUsername } = req.body as { chesscomUsername?: string; lichessUsername?: string };
+  const { error } = await db.from('chess_accounts').upsert({
+    user_id: req.params['userId'],
+    chesscom_username: chesscomUsername ?? '',
+    lichess_username: lichessUsername ?? '',
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id' });
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true });
+});
+
+// Chess Games — GET (with optional ?platform= filter)
+app.get('/api/chess/games/:userId', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  let query = db.from('chess_games').select('*').eq('user_id', req.params['userId']).order('game_date', { ascending: false });
+  if (req.query['platform']) {
+    query = query.eq('platform', req.query['platform'] as string);
+  }
+  const { data, error } = await query;
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json((data ?? []).map(g => mapGameRow(g as Record<string, unknown>)));
+});
+
+// Chess Games — POST (bulk save/upsert)
+app.post('/api/chess/games/:userId', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const { games = [] } = req.body as { games?: ChessGameInput[] };
+  if (!Array.isArray(games) || games.length === 0) { res.json({ ok: true, count: 0 }); return; }
+  const rows = games.map((g: ChessGameInput) => ({
+    id: g.id,
+    user_id: req.params['userId'],
+    platform: g.platform,
+    external_id: g.externalId ?? null,
+    pgn: g.pgn ?? null,
+    fen: g.fen ?? null,
+    result: g.result,
+    player_color: g.playerColor,
+    player_rating: g.playerRating ?? null,
+    opponent_username: g.opponentUsername ?? null,
+    opponent_rating: g.opponentRating ?? null,
+    opening_name: g.openingName ?? null,
+    opening_eco: g.openingEco ?? null,
+    time_control: g.timeControl ?? null,
+    game_duration_secs: g.gameDurationSecs ?? null,
+    game_date: g.gameDate,
+    moves_count: g.movesCount ?? null,
+    is_analyzed: g.isAnalyzed ?? false,
+    accuracy: g.accuracy ?? null,
+    best_move: g.bestMove ?? null,
+    worst_move: g.worstMove ?? null,
+    analysis_notes: g.analysisNotes ?? null,
+  }));
+  const { error } = await db.from('chess_games').upsert(rows, { onConflict: 'id' });
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true, count: rows.length });
+});
+
+// Chess Games — PUT analysis for a specific game
+app.put('/api/chess/games/:userId/:gameId/analysis', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const { accuracy, bestMove, worstMove, analysisNotes } = req.body as {
+    accuracy?: number; bestMove?: string; worstMove?: string; analysisNotes?: string;
+  };
+  const { error } = await db.from('chess_games').update({
+    is_analyzed: true,
+    accuracy: accuracy ?? null,
+    best_move: bestMove ?? null,
+    worst_move: worstMove ?? null,
+    analysis_notes: analysisNotes ?? null,
+  }).eq('id', req.params['gameId']).eq('user_id', req.params['userId']);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true });
+});
+
+// Chess Stats — GET (computed from stored games + rating history)
+app.get('/api/chess/stats/:userId', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const [gamesRes, ratingRes] = await Promise.all([
+    db.from('chess_games').select('result, opening_name, game_date').eq('user_id', req.params['userId']),
+    db.from('chess_rating_history').select('date, rating, platform').eq('user_id', req.params['userId']).order('date', { ascending: true }),
+  ]);
+  if (gamesRes.error) { res.status(500).json({ error: gamesRes.error.message }); return; }
+  const games = (gamesRes.data ?? []) as Array<{ result: string; opening_name: string | null; game_date: string }>;
+  const wins = games.filter(g => g.result === 'win').length;
+  const losses = games.filter(g => g.result === 'loss').length;
+  const draws = games.filter(g => g.result === 'draw').length;
+  const total = games.length;
+  const winRate = total > 0 ? Math.round((wins / total) * 100) : 0;
+  const openingCounts: Record<string, number> = {};
+  for (const g of games) {
+    if (g.opening_name) openingCounts[g.opening_name] = (openingCounts[g.opening_name] ?? 0) + 1;
+  }
+  const topOpenings = Object.entries(openingCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
+  const hourMap: Record<number, { wins: number; losses: number; draws: number; total: number }> = {};
+  for (const g of games) {
+    const hour = new Date(g.game_date).getUTCHours();
+    if (!hourMap[hour]) hourMap[hour] = { wins: 0, losses: 0, draws: 0, total: 0 };
+    hourMap[hour].total++;
+    if (g.result === 'win') hourMap[hour].wins++;
+    else if (g.result === 'loss') hourMap[hour].losses++;
+    else hourMap[hour].draws++;
+  }
+  const hourPerformance = Object.entries(hourMap)
+    .map(([h, v]) => ({ hour: Number(h), ...v }))
+    .sort((a, b) => a.hour - b.hour);
+  const ratingRows = (ratingRes.data ?? []) as Array<{ date: string; rating: number; platform: string }>;
+  const ratingTimeline = ratingRows.map(r => ({ date: r.date, rating: r.rating, platform: r.platform }));
+  res.json({ wins, losses, draws, total, winRate, topOpenings, hourPerformance, ratingTimeline });
+});
+
 // ── Data routes ───────────────────────────────────────────────────────────────
 
 // Goals — GET
