@@ -1,20 +1,23 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useUiStore } from "@/stores/ui.store";
 import { useAuth } from "@/providers/AuthProvider";
 import { useAIStore, type CoachRole } from "@/stores/ai.store";
+import { useTimerStore } from "@/stores/timer.store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2, Target, Trash2, AlertTriangle } from "lucide-react";
+import { GraduationCap, Rocket, Crown, Music, Trophy, RotateCcw, BarChart3, Swords, CheckCircle2, Target, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchChessAccounts, saveChessAccounts } from "@/lib/chess-api";
 import { useStatsStore } from "@/stores/stats.store";
 import { useStreakStore } from "@/stores/streak.store";
 import { setDataCleared } from "@/lib/data-cleared";
 import { fetchGoals, saveGoals } from "@/lib/goals-api";
+import { apiFetch } from "@/lib/api-fetch";
 import { EditableField } from "@/components/ui/EditableField";
 
 const getDomainColor = (domain: string) => {
@@ -68,6 +71,7 @@ const COACH_META: Record<CoachRole, { label: string; icon: React.ComponentType<{
 const ROLES: CoachRole[] = ['achievement', 'academic', 'startup', 'chess', 'guitar'];
 
 export function SettingsPage() {
+  const [, navigate] = useLocation();
   const { theme, setTheme } = useUiStore();
   const { signOut, user } = useAuth();
   const {
@@ -81,10 +85,11 @@ export function SettingsPage() {
 
   const { resetAll: resetStatsStore } = useStatsStore();
   const { reset: resetStreakStore } = useStreakStore();
+  const { resetTimer } = useTimerStore();
 
   const [activeRole, setActiveRole] = useState<CoachRole>('achievement');
   const [resetConfirm, setResetConfirm] = useState(false);
-  const [resetDone, setResetDone] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Chess account settings
   const [chesscomUsername, setChesscomUsername] = useState('princeplaysch');
@@ -128,14 +133,43 @@ export function SettingsPage() {
     });
   }, [user?.id]);
 
-  function handleResetAll() {
+  async function handleResetAll() {
+    setResetting(true);
+
+    // 1. Reset all Zustand stores in memory
     resetStatsStore();
     resetStreakStore();
     resetAIStore();
+    resetTimer();
+
+    // 2. Remove persisted localStorage keys so stale data cannot survive
+    const PERSIST_KEYS = [
+      'ascend-stats-storage',
+      'ascend-streak-storage',
+      'ascend-ai-storage',
+      'ascend-timer-storage',
+    ];
+    PERSIST_KEYS.forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+
+    // 3. Set the data-cleared flag so mock-mode Supabase fallbacks return []
     setDataCleared();
+
+    // 4. Best-effort: wipe goals and all Supabase rows on the backend
+    if (user?.id) {
+      try { await saveGoals(user.id, []); } catch {}
+      try {
+        await apiFetch('/api/data/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id }),
+        });
+      } catch {}
+    }
+
+    // 5. Navigate to dashboard
+    setResetting(false);
     setResetConfirm(false);
-    setResetDone(true);
-    setTimeout(() => setResetDone(false), 3000);
+    navigate('/');
   }
 
   async function handleSaveChessAccounts() {
@@ -472,21 +506,17 @@ export function SettingsPage() {
                 </p>
               </div>
 
-              {resetDone ? (
-                <div className="flex items-center gap-2 text-sm text-emerald-500 font-medium">
-                  <CheckCircle2 className="w-4 h-4" />
-                  All data has been reset.
-                </div>
-              ) : resetConfirm ? (
+              {resetConfirm ? (
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                   <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
                   <p className="text-xs text-destructive flex-1">This will erase everything permanently.</p>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setResetConfirm(false)}>
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={resetting} onClick={() => setResetConfirm(false)}>
                       Cancel
                     </Button>
-                    <Button size="sm" variant="destructive" className="h-7 px-3 text-xs" onClick={handleResetAll}>
-                      Yes, reset everything
+                    <Button size="sm" variant="destructive" className="h-7 px-3 text-xs gap-1.5" disabled={resetting} onClick={handleResetAll}>
+                      {resetting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {resetting ? 'Resetting…' : 'Yes, reset everything'}
                     </Button>
                   </div>
                 </div>

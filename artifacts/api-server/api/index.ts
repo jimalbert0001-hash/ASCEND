@@ -507,9 +507,64 @@ app.post('/api/ai/analyze/goals', async (req: Request, res: Response) => {
 
 // ── Data routes ───────────────────────────────────────────────────────────────
 
-// Goals — no DB schema defined yet, return empty list
+// Goals — GET
 app.get('/api/data/goals', (_req: Request, res: Response) => {
-  res.json({ goals: [] });
+  res.json([]);
+});
+
+// Goals — PUT (upsert all goals for a user; no DB schema yet so echo back)
+app.put('/api/data/goals', (req: Request, res: Response) => {
+  const { goals = [] } = req.body as { userId?: string; goals?: unknown[] };
+  res.json(goals);
+});
+
+// Reset all user data — deletes every row owned by the authenticated user
+app.post('/api/data/reset', async (req: Request, res: Response) => {
+  const authHeader = req.headers['authorization'] as string | undefined;
+  const accessToken =
+    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined) ??
+    (req.cookies?.['sb-access-token'] as string | undefined);
+
+  if (!accessToken) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+
+  // Verify the caller
+  const verifyClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+  const { data: userData, error: userError } = await verifyClient.auth.getUser(accessToken);
+  if (userError || !userData.user) {
+    res.status(401).json({ error: 'Invalid or expired token' });
+    return;
+  }
+
+  const userId = userData.user.id;
+
+  // Authenticated client — RLS enforces ownership, each delete is scoped to userId
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+
+  const tables = [
+    'goals', 'tasks', 'daily_reviews',
+    'study_sessions', 'mock_tests', 'subjects',
+    'startup_projects', 'startup_ideas',
+    'startup_roadmap', 'startup_features', 'startup_bugs',
+    'startup_milestones', 'startup_revenue', 'startup_user_metrics',
+    'guitar_practice_sessions', 'guitar_songs', 'guitar_chords',
+    'guitar_scales', 'guitar_theory_lessons', 'guitar_recordings', 'guitar_skill_areas',
+    'chess_rating_history', 'chess_puzzle_sessions', 'chess_openings',
+    'chess_endgame_studies', 'chess_tournaments', 'chess_training_sessions',
+    'chess_game_notes', 'chess_accounts',
+    'achievements',
+  ];
+
+  // Fire all deletes concurrently; ignore individual failures (table may not exist or already empty)
+  await Promise.allSettled(
+    tables.map((table) => db.from(table).delete().eq('user_id', userId))
+  );
+
+  res.json({ ok: true, userId });
 });
 
 export default app;
