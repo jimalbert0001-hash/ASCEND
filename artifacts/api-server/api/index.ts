@@ -294,12 +294,32 @@ const SYSTEM_PROMPTS: Record<CoachRole, string> = {
   guitar: `You are a Guitar Coach helping students build technique, overcome plateaus, and design effective practice sessions. Give structured, specific practice advice. Keep responses under 300 words.`,
 };
 
-function getSystemPrompt(role: CoachRole, personalityOverride?: string): string {
+const ACTION_INSTRUCTIONS = `
+
+DATA ACCESS: You have full read access to the user's real-time data snapshot provided below. Always reference specific numbers, chapter names, percentages, and stats when giving advice — never speak in generics when real data is available. Proactively surface insights like missed sessions, low completion, or rating drops.
+
+WRITE ACTIONS: When the user explicitly asks you to log, update, or record something, respond naturally AND append exactly one action block at the very end of your message using this exact format (no spaces inside markers):
+%%ACTION_START%%{"action":"ACTION_TYPE","field":"value"}%%ACTION_END%%
+
+Supported action types:
+• log_study_session — fields: subjectId (phy/chem/math/eng/cs), subjectName, durationMins (number), sessionType (study/revision/mock_prep), notes
+• log_chess_session — fields: focus (tactics/openings/endgames/analysis/blitz/strategy), durationMins (number), notes
+• log_guitar_session — fields: focus (chords/scales/songs/technique/fingerpicking), durationMins (number), notes
+• mark_chapter_complete — fields: subjectId (phy/chem/math/eng/cs), chapterName (use exact chapter name from data)
+• add_chess_rating — fields: rating (number), platform (lichess/chess.com/otb)
+
+Rules: Only include one action block per response. Only include it when the user explicitly requests a change. Do not make up data or invent chapters.`;
+
+function getSystemPrompt(role: CoachRole, personalityOverride?: string, context?: string): string {
   const base = SYSTEM_PROMPTS[role] ?? SYSTEM_PROMPTS.achievement;
+  const contextSection = context
+    ? `\n\nUSER DATA SNAPSHOT:\n${context}`
+    : '';
+  const combined = `${base}${ACTION_INSTRUCTIONS}${contextSection}`;
   if (personalityOverride?.trim()) {
-    return `${base}\n\nAdditional personality/style guidance: ${personalityOverride.trim()}`;
+    return `${combined}\n\nAdditional personality/style guidance: ${personalityOverride.trim()}`;
   }
-  return base;
+  return combined;
 }
 
 // AI — status
@@ -329,12 +349,13 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
     return;
   }
 
-  const { messages, role, stream, personalityOverride } = req.body as {
+  const { messages, role, stream, personalityOverride, context } = req.body as {
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     role: CoachRole;
     userId?: string;
     stream?: boolean;
     personalityOverride?: string;
+    context?: string;
   };
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -342,7 +363,7 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
     return;
   }
 
-  const systemPrompt = getSystemPrompt(role ?? 'achievement', personalityOverride);
+  const systemPrompt = getSystemPrompt(role ?? 'achievement', personalityOverride, context);
 
   const payload = {
     model: DEFAULT_MODEL,

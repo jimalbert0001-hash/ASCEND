@@ -99,6 +99,7 @@ interface AIState {
   finalizeStream: (conversationId: string) => void;
   setIsStreaming: (v: boolean) => void;
   setStreamingContent: (v: string) => void;
+  patchLastAssistantMessage: (conversationId: string, newContent: string) => void;
   deleteConversation: (id: string) => void;
   setDailyRecommendations: (recs: Recommendation[], briefing: string) => void;
   setWeeklyRecommendations: (recs: Recommendation[], digest: string) => void;
@@ -218,6 +219,22 @@ export const useAIStore = create<AIState>()(
 
       setIsStreaming: (v) => set({ isStreaming: v }),
       setStreamingContent: (v) => set({ streamingContent: v }),
+
+      patchLastAssistantMessage: (conversationId, newContent) => {
+        set((s) => ({
+          conversations: s.conversations.map((c) => {
+            if (c.id !== conversationId) return c;
+            const msgs = [...c.messages];
+            for (let i = msgs.length - 1; i >= 0; i--) {
+              if (msgs[i].role === 'assistant') {
+                msgs[i] = { ...msgs[i], content: newContent };
+                break;
+              }
+            }
+            return { ...c, messages: msgs, updatedAt: Date.now() };
+          }),
+        }));
+      },
 
       deleteConversation: (id) =>
         set((s) => ({

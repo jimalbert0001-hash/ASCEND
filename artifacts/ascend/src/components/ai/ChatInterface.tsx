@@ -8,6 +8,8 @@ import { CoachSelector, COACHES } from './CoachSelector';
 import { useAIStore, type CoachRole } from '@/stores/ai.store';
 import { sendChatMessageStream } from '@/lib/ai-api';
 import type { AIMessage } from '@/lib/ai-api';
+import { buildContextSnapshot } from '@/lib/ai-context';
+import { parseActionBlock, stripActionBlock, executeAction } from '@/lib/ai-actions';
 
 const ROLE_STARTERS: Record<CoachRole, string[]> = {
   achievement: [
@@ -76,6 +78,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setStreamingContent,
     setActiveConversation,
     addTokenUsage,
+    patchLastAssistantMessage,
   } = useAIStore();
 
   const [input, setInput] = useState('');
@@ -109,6 +112,8 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
       .filter((m) => m.id !== 'streaming')
       .map((m) => ({ role: m.role, content: m.content }));
 
+    const context = await buildContextSnapshot(userId);
+
     const ac = new AbortController();
     setAbortController(ac);
     setIsStreaming(true);
@@ -126,7 +131,8 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
           }
         },
         personality,
-        (usage) => addTokenUsage(activeRole, usage)
+        (usage) => addTokenUsage(activeRole, usage),
+        context
       );
     } catch (err) {
       if (!ac.signal.aborted) {
@@ -142,6 +148,24 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
 
     finalizeStream(convId);
     setAbortController(null);
+
+    const finalConv = useAIStore.getState().conversations.find((c) => c.id === convId);
+    const lastMsg = [...(finalConv?.messages ?? [])].reverse().find((m) => m.role === 'assistant');
+    if (lastMsg?.content) {
+      const actionData = parseActionBlock(lastMsg.content);
+      if (actionData) {
+        const cleanContent = stripActionBlock(lastMsg.content);
+        patchLastAssistantMessage(convId, cleanContent);
+        try {
+          const confirmation = await executeAction(actionData, userId);
+          if (confirmation) {
+            patchLastAssistantMessage(convId, `${cleanContent}\n\n${confirmation}`);
+          }
+        } catch {
+          patchLastAssistantMessage(convId, `${cleanContent}\n\n⚠ Action failed — please update manually`);
+        }
+      }
+    }
   }, [
     input,
     isStreaming,
@@ -155,6 +179,7 @@ export function ChatInterface({ userId }: ChatInterfaceProps) {
     setIsStreaming,
     setStreamingContent,
     addTokenUsage,
+    patchLastAssistantMessage,
   ]);
 
   const handleStop = () => {

@@ -30,9 +30,10 @@ export async function sendChatMessage(
   messages: AIMessage[],
   role: CoachRole,
   userId: string,
-  personalityOverride?: string
+  personalityOverride?: string,
+  context?: string
 ): Promise<{ content: string; usage?: { promptTokens: number; completionTokens: number; totalTokens: number } }> {
-  const res = await postApi('/chat', { messages, role, userId, stream: false, personalityOverride });
+  const res = await postApi('/chat', { messages, role, userId, stream: false, personalityOverride, context });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
@@ -50,9 +51,10 @@ export async function sendChatMessageStream(
   userId: string,
   onChunk: (chunk: string) => void,
   personalityOverride?: string,
-  onUsage?: (usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => void
+  onUsage?: (usage: { promptTokens: number; completionTokens: number; totalTokens: number }) => void,
+  context?: string
 ): Promise<void> {
-  const res = await postApi('/chat', { messages, role, userId, stream: true, personalityOverride });
+  const res = await postApi('/chat', { messages, role, userId, stream: true, personalityOverride, context });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(err.error ?? `HTTP ${res.status}`);
