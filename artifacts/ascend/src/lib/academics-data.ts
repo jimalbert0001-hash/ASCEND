@@ -248,16 +248,36 @@ export function getClearedSubjectsData(): Subject[] {
 }
 
 export function getSubjectStats(subject: Subject) {
-  if (isDataCleared()) {
-    return { completed: 0, total: subject.chapters.length, completionPct: 0, totalHours: 0, avgUnderstanding: 0, dueRevisions: 0 };
-  }
   const completed = subject.chapters.filter(c => c.isCompleted).length;
   const total = subject.chapters.length;
-  const completionPct = Math.round((completed / total) * 100);
+  const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0;
   const totalHours = subject.chapters.reduce((s, c) => s + c.actualHours, 0);
-  const avgUnderstanding = subject.chapters.filter(c => c.isCompleted).reduce((s, c, _, arr) => s + c.understandingLevel / arr.length, 0);
+  const completedChapters = subject.chapters.filter(c => c.isCompleted);
+  const avgUnderstanding = completedChapters.length > 0
+    ? completedChapters.reduce((s, c) => s + c.understandingLevel, 0) / completedChapters.length
+    : 0;
   const dueRevisions = subject.chapters.filter(c => c.nextRevision && new Date(c.nextRevision) <= new Date()).length;
   return { completed, total, completionPct, totalHours, avgUnderstanding, dueRevisions };
+}
+
+export function computeTotalStats(subjects: Subject[]) {
+  if (subjects.length === 0) {
+    const boardDate = new Date('2027-03-01');
+    const daysUntilBoards = Math.ceil((boardDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    return { totalHours: 0, avgCompletion: 0, avgMockScore: 0, predictedScore: 0, daysUntilBoards, dueRevisions: 0 };
+  }
+  const allSubjectStats = subjects.map(s => getSubjectStats(s));
+  const totalHours = allSubjectStats.reduce((s, x) => s + x.totalHours, 0);
+  const avgCompletion = Math.round(allSubjectStats.reduce((s, x) => s + x.completionPct, 0) / subjects.length);
+  const relevantTests = mockTestsData.filter(t => t.subjectId !== null);
+  const avgMockScore = relevantTests.length > 0
+    ? relevantTests.reduce((s, t) => s + (t.obtainedMarks / t.totalMarks * 100), 0) / relevantTests.length
+    : 0;
+  const predictedScore = Math.round(avgCompletion * 0.5 + avgMockScore * 0.5);
+  const boardDate = new Date('2027-03-01');
+  const daysUntilBoards = Math.ceil((boardDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  const dueRevisions = subjects.reduce((s, sub) => s + sub.chapters.filter(c => c.nextRevision && new Date(c.nextRevision) <= new Date()).length, 0);
+  return { totalHours: Math.round(totalHours * 10) / 10, avgCompletion, avgMockScore: Math.round(avgMockScore * 10) / 10, predictedScore, daysUntilBoards, dueRevisions };
 }
 
 export function getTotalStats() {

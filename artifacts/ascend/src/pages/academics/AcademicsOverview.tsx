@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { subjectsData, getSubjectStats, getTotalStats } from "@/lib/academics-data";
+import { subjectsData, getSubjectStats, computeTotalStats } from "@/lib/academics-data";
+import { useAcademicsStore } from "@/stores/academics.store";
 import { GoalsBanner } from "@/components/GoalsBanner";
 import { logStudySession, fetchAcademicsData } from "@/lib/log-api";
 import { useAuth } from "@/providers/AuthProvider";
@@ -191,8 +192,9 @@ export function AcademicsOverview() {
   const [loadingData, setLoadingData] = useState(true);
   const { user } = useAuth();
   const userId = user?.id ?? 'mock-user-1';
+  const { subjects: storeSubjects, load: loadSubjects } = useAcademicsStore();
 
-  const stats = getTotalStats();
+  const stats = computeTotalStats(storeSubjects);
   const boardScore500 = Math.round((stats.avgCompletion * 0.4 + stats.avgMockScore * 0.6) / 100 * 500);
   const boardPct = Math.round(boardScore500 / 5);
   const boardColor = boardPct >= 80 ? '#22c55e' : boardPct >= 70 ? '#f59e0b' : '#ef4444';
@@ -209,7 +211,7 @@ export function AcademicsOverview() {
     }
   }
 
-  useEffect(() => { loadData(); }, [userId]);
+  useEffect(() => { loadData(); loadSubjects(userId); }, [userId]);
 
   const displayHours = dbTotalHours !== null ? dbTotalHours : stats.totalHours;
   const recentSessions = dbSessions.slice(0, 6);
@@ -282,7 +284,7 @@ export function AcademicsOverview() {
           </Link>
         </div>
         <motion.div variants={stagger} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjectsData.map(subject => {
+          {storeSubjects.map(subject => {
             const s = getSubjectStats(subject);
             const colorClass = SUBJECT_COLORS[subject.color];
             const ringColor = SUBJECT_RING[subject.color];
@@ -392,7 +394,7 @@ export function AcademicsOverview() {
         onClose={() => { setLogModal(false); setLogSubject(undefined); }}
         defaultSubjectId={logSubject}
         userId={userId}
-        onSaved={loadData}
+        onSaved={() => { loadData(); loadSubjects(userId); }}
       />
     </div>
   );

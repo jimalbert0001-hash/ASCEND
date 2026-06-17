@@ -12,10 +12,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { subjectsData, getClearedSubjectsData, Chapter, Formula, getSubjectStats } from "@/lib/academics-data";
-import { createStudySession, getSubjects } from "@/lib/academics-supabase";
+import { subjectsData, Chapter, Formula, getSubjectStats } from "@/lib/academics-data";
+import { createStudySession } from "@/lib/academics-supabase";
+import { useAcademicsStore } from "@/stores/academics.store";
 import { useAuth } from "@/providers/AuthProvider";
-import { isDataCleared } from "@/lib/data-cleared";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, any> = { Atom, FlaskConical, Calculator, Book, Terminal, BookOpen };
@@ -58,9 +58,9 @@ function SectionHeader({ label, color }: { label: string; color: string }) {
   );
 }
 
-function ChapterRow({ chapter, color, displayName }: { chapter: Chapter; color: string; displayName?: string }) {
+function ChapterRow({ chapter, color, displayName, onToggle }: { chapter: Chapter; color: string; displayName?: string; onToggle?: (chapterId: string, isCompleted: boolean) => void }) {
   const [expanded, setExpanded] = useState(false);
-  const [completed, setCompleted] = useState(chapter.isCompleted);
+  const completed = chapter.isCompleted;
   const dueToday = chapter.nextRevision && new Date(chapter.nextRevision) <= new Date();
   const overdue = chapter.nextRevision && new Date(chapter.nextRevision) < new Date();
 
@@ -68,8 +68,8 @@ function ChapterRow({ chapter, color, displayName }: { chapter: Chapter; color: 
     <div className={cn("border rounded-xl transition-all", completed ? 'border-border/30 bg-muted/5' : 'border-border/50 bg-card/40')}>
       <button className="w-full flex items-center gap-3 p-4 text-left" onClick={() => setExpanded(!expanded)}>
         <div role="button" tabIndex={0} className="shrink-0 cursor-pointer"
-          onClick={e => { e.stopPropagation(); setCompleted(!completed); }}
-          onKeyDown={e => e.key === 'Enter' && setCompleted(!completed)}>
+          onClick={e => { e.stopPropagation(); onToggle?.(chapter.id, !completed); }}
+          onKeyDown={e => { if (e.key === 'Enter') onToggle?.(chapter.id, !completed); }}>
           {completed
             ? <CheckCircle2 className={cn("w-5 h-5", COLOR_TEXT[color])} />
             : <Circle className="w-5 h-5 text-muted-foreground/40" />}
@@ -204,15 +204,15 @@ export function SubjectsPage() {
     if (subjectFromUrl) setActiveId(subjectFromUrl);
   }, [search]);
   const [logModal, setLogModal] = useState(false);
-  const [subjects, setSubjects] = useState(() => isDataCleared() ? getClearedSubjectsData() : subjectsData);
+  const { subjects, load: loadSubjects, toggleChapter } = useAcademicsStore();
   const { user } = useAuth();
   const userId = user?.id ?? 'mock-user-1';
 
   useEffect(() => {
-    getSubjects(userId).then(data => setSubjects(data));
+    loadSubjects(userId);
   }, [userId]);
 
-  const subject = subjects.find(s => s.id === activeId) ?? subjects[0] ?? getClearedSubjectsData()[0];
+  const subject = subjects.find(s => s.id === activeId) ?? subjects[0] ?? subjectsData[0];
   const stats = getSubjectStats(subject);
   const SubjectIcon = ICONS[subject.icon] ?? BookOpen;
 
@@ -304,7 +304,7 @@ export function SubjectsPage() {
                     const i = globalIdx++;
                     return (
                       <motion.div key={chapter.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
-                        <ChapterRow chapter={chapter} color={subject.color} displayName={displayName} />
+                        <ChapterRow chapter={chapter} color={subject.color} displayName={displayName} onToggle={toggleChapter} />
                       </motion.div>
                     );
                   })}
@@ -313,7 +313,7 @@ export function SubjectsPage() {
             ));
           })() : subject.chapters.map((chapter, i) => (
             <motion.div key={chapter.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
-              <ChapterRow chapter={chapter} color={subject.color} />
+              <ChapterRow chapter={chapter} color={subject.color} onToggle={toggleChapter} />
             </motion.div>
           ))}
         </div>
