@@ -13,10 +13,22 @@ export async function getSubjects(userId: string): Promise<Subject[]> {
   } catch { return subjectsData; }
 }
 
-export async function updateChapterCompletion(chapterId: string, isCompleted: boolean, level: number): Promise<void> {
+export async function updateChapterCompletion(
+  chapterId: string,
+  isCompleted: boolean,
+  level: number,
+  nextRevision: string | null,
+  revisionCount: number,
+): Promise<void> {
   if (isMock) return;
   try {
-    await supabase.from('chapters').update({ is_completed: isCompleted, understanding_level: level, completed_at: isCompleted ? new Date().toISOString() : null }).eq('id', chapterId);
+    await supabase.from('chapters').update({
+      is_completed: isCompleted,
+      understanding_level: level,
+      completed_at: isCompleted ? new Date().toISOString() : null,
+      next_revision: nextRevision,
+      revision_count: revisionCount,
+    }).eq('id', chapterId);
   } catch { }
 }
 

@@ -247,6 +247,15 @@ export function getClearedSubjectsData(): Subject[] {
   }));
 }
 
+const REVISION_INTERVALS = [3, 7, 21, 30]; // days per revision milestone
+
+export function computeNextRevision(revisionCount: number): string {
+  const days = REVISION_INTERVALS[Math.min(revisionCount, REVISION_INTERVALS.length - 1)];
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+}
+
 export function getSubjectStats(subject: Subject) {
   const completed = subject.chapters.filter(c => c.isCompleted).length;
   const total = subject.chapters.length;

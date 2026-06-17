@@ -1,7 +1,7 @@
 import { createStudySession, updateChapterCompletion } from './academics-supabase';
 import { createTrainingSession, addRatingEntry } from './chess-supabase';
 import { createPracticeSession } from './guitar-supabase';
-import { subjectsData } from './academics-data';
+import { subjectsData, computeNextRevision } from './academics-data';
 import type { StudySession } from './academics-data';
 import type { TrainingSession } from './chess-data';
 import type { PracticeSession } from './guitar-data';
@@ -76,7 +76,9 @@ export async function executeAction(action: AIAction, userId: string): Promise<s
           const fullName = chapter.name.toLowerCase();
           const shortName = fullName.includes(' — ') ? fullName.split(' — ').pop() ?? fullName : fullName;
           if (fullName.includes(targetName) || targetName.includes(shortName)) {
-            await updateChapterCompletion(chapter.id, true, 3);
+            const nextRevision = computeNextRevision(chapter.revisionCount);
+            const newRevisionCount = chapter.revisionCount + 1;
+            await updateChapterCompletion(chapter.id, true, 3, nextRevision, newRevisionCount);
             found = true;
             return `✓ Marked "${chapter.name}" as complete`;
           }
