@@ -163,7 +163,7 @@ export function StartupOverview() {
                   </div>
 
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {project.tags.slice(0, 4).map(tag => (
+                    {(project.tags ?? []).slice(0, 4).map(tag => (
                       <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{tag}</span>
                     ))}
                   </div>
@@ -221,7 +221,7 @@ export function StartupOverview() {
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2">{idea.description}</p>
                 <div className="flex flex-wrap gap-1 mt-2">
-                  {idea.tags.slice(0, 3).map(t => (
+                  {(idea.tags ?? []).slice(0, 3).map(t => (
                     <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{t}</span>
                   ))}
                 </div>

@@ -16,7 +16,7 @@ export const useAcademicsStore = create<AcademicsState>((set, get) => ({
 
   load: async (userId: string) => {
     const subjects = await getSubjects(userId);
-    set({ subjects, initialized: true });
+    set({ subjects: subjects ?? subjectsData, initialized: true });
   },
 
   toggleChapter: async (chapterId: string, isCompleted: boolean) => {

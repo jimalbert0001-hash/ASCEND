@@ -191,7 +191,7 @@ export function MetricsPage() {
   useEffect(() => {
     getMilestones(selectedProject).then(data => setMilestones(prev => {
       const other = prev.filter(m => m.projectId !== selectedProject);
-      return [...other, ...data];
+      return [...other, ...(data ?? [])];
     }));
   }, [selectedProject]);
 

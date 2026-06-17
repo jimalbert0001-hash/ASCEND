@@ -253,8 +253,8 @@ export function ProjectsPage() {
   const userId = user?.id ?? 'mock-user-1';
 
   useEffect(() => {
-    getProjects(userId).then(data => setProjects(data));
-    getIdeas(userId).then(data => setIdeas(data));
+    getProjects(userId).then(data => setProjects(data ?? []));
+    getIdeas(userId).then(data => setIdeas(data ?? []));
   }, [userId]);
   const [ideaModal, setIdeaModal] = useState(false);
   const [editIdea, setEditIdea] = useState<IdeaVaultItem | undefined>();
@@ -356,7 +356,7 @@ export function ProjectsPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      {p.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{t}</span>)}
+                      {(p.tags ?? []).map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{t}</span>)}
                     </div>
                     {p.website && (
                       <a href={`https://${p.website}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline mt-2">
@@ -427,7 +427,7 @@ export function ProjectsPage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {idea.tags.map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{t}</span>)}
+                        {(idea.tags ?? []).map(t => <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-muted/30 text-muted-foreground">{t}</span>)}
                       </div>
                     </div>
                   </div>

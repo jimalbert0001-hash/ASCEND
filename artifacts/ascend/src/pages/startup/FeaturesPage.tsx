@@ -254,11 +254,11 @@ export function FeaturesPage() {
   useEffect(() => {
     getFeatures(selectedProject).then(data => setFeatures(prev => {
       const other = prev.filter(f => f.projectId !== selectedProject);
-      return [...other, ...data];
+      return [...other, ...(data ?? [])];
     }));
     getBugs(selectedProject).then(data => setBugs(prev => {
       const other = prev.filter(b => b.projectId !== selectedProject);
-      return [...other, ...data];
+      return [...other, ...(data ?? [])];
     }));
   }, [selectedProject]);
 

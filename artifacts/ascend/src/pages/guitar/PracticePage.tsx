@@ -33,9 +33,9 @@ export function PracticePage() {
   const userId = user?.id ?? 'mock-user-1';
 
   useEffect(() => {
-    getPracticeSessions(userId).then(data => setSessions(data));
-    getRecordings(userId).then(data => setRecs(data));
-    getTheoryLessons(userId).then(data => setLessons(data));
+    getPracticeSessions(userId).then(data => setSessions(data ?? []));
+    getRecordings(userId).then(data => setRecs(data ?? []));
+    getTheoryLessons(userId).then(data => setLessons(data ?? []));
   }, [userId]);
 
   const [sf, setSf] = useState({ date: new Date().toISOString().slice(0, 10), durationMins: 30, focus: 'songs' as PracticeFocus, intensity: 'focused' as PracticeIntensity, notes: '', bpm: '' });

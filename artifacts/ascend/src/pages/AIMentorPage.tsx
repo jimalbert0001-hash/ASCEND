@@ -289,10 +289,10 @@ function StatsCard({ context }: { context: UserContext }) {
           <span className="text-xs font-semibold">{item.value}</span>
         </div>
       ))}
-      {context.goals.length > 0 && (
+      {(context.goals ?? []).length > 0 && (
         <div className="pt-2">
           <p className="text-xs text-muted-foreground mb-1">Goals</p>
-          {context.goals.slice(0, 3).map((g: { id: string; title: string; progress: number }) => (
+          {(context.goals ?? []).slice(0, 3).map((g: { id: string; title: string; progress: number }) => (
             <div key={g.id} className="mb-1.5">
               <div className="flex justify-between mb-0.5">
                 <span className="text-xs truncate text-muted-foreground" style={{ maxWidth: '80%' }}>{g.title.split(' ').slice(0, 3).join(' ')}</span>

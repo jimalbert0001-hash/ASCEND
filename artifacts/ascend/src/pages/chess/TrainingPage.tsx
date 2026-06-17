@@ -30,8 +30,8 @@ export function TrainingPage() {
   const userId = user?.id ?? 'mock-user-1';
 
   useEffect(() => {
-    getTrainingSessions(userId).then(data => setSessions(data));
-    getGameNotes(userId).then(data => setGames(data));
+    getTrainingSessions(userId).then(data => setSessions(data ?? []));
+    getGameNotes(userId).then(data => setGames(data ?? []));
   }, [userId]);
 
   const [sf, setSf] = useState({ date: new Date().toISOString().slice(0, 10), durationMins: 60, focus: 'tactics' as TrainingFocus, intensity: 'medium' as TrainingIntensity, notes: '', puzzlesSolved: '', gamesPlayed: '' });
@@ -230,9 +230,9 @@ export function TrainingPage() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{g.opening} · {g.date} · Rating: {g.ratingAtTime}</p>
                     {g.analysis && <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{g.analysis}</p>}
-                    {g.lessons.length > 0 && (
+                    {(g.lessons ?? []).length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {g.lessons.map((l, j) => <span key={j} className="text-[10px] bg-muted/30 px-2 py-0.5 rounded text-muted-foreground">💡 {l}</span>)}
+                        {(g.lessons ?? []).map((l, j) => <span key={j} className="text-[10px] bg-muted/30 px-2 py-0.5 rounded text-muted-foreground">💡 {l}</span>)}
                       </div>
                     )}
                   </div>

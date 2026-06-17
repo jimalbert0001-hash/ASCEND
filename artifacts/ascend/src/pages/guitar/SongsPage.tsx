@@ -36,8 +36,8 @@ export function SongsPage() {
   const userId = user?.id ?? 'mock-user-1';
 
   useEffect(() => {
-    getSongs(userId).then(data => setSongs(data));
-    getChords(userId).then(data => setChords(data));
+    getSongs(userId).then(data => setSongs(data ?? []));
+    getChords(userId).then(data => setChords(data ?? []));
   }, [userId]);
 
   async function saveSong() {
@@ -164,9 +164,9 @@ export function SongsPage() {
                       </Button>
                     </div>
                   </div>
-                  {s.chords.length > 0 && (
+                  {(s.chords ?? []).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {s.chords.map(c => <span key={c} className="text-[10px] font-mono bg-muted/30 px-1.5 py-0.5 rounded">{c}</span>)}
+                      {(s.chords ?? []).map(c => <span key={c} className="text-[10px] font-mono bg-muted/30 px-1.5 py-0.5 rounded">{c}</span>)}
                     </div>
                   )}
                   {s.notes && <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{s.notes}</p>}

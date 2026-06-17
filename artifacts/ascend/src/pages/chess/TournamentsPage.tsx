@@ -26,7 +26,7 @@ export function TournamentsPage() {
   const userId = user?.id ?? 'mock-user-1';
 
   useEffect(() => {
-    getTournaments(userId).then(data => setTournaments(data));
+    getTournaments(userId).then(data => setTournaments(data ?? []));
   }, [userId]);
 
   async function saveTournament() {

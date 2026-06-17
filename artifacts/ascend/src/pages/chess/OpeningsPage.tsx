@@ -207,9 +207,9 @@ export function OpeningsPage() {
                     <span className="text-[10px] text-muted-foreground shrink-0">{op.gamesPlayed} games</span>
                   </div>
                   {op.notes && <p className="text-[11px] text-muted-foreground mt-2 line-clamp-2">{op.notes}</p>}
-                  {op.tags.length > 0 && (
+                  {(op.tags ?? []).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {op.tags.map(t => <span key={t} className="text-[10px] bg-muted/30 px-1.5 py-0.5 rounded text-muted-foreground">{t}</span>)}
+                      {(op.tags ?? []).map(t => <span key={t} className="text-[10px] bg-muted/30 px-1.5 py-0.5 rounded text-muted-foreground">{t}</span>)}
                     </div>
                   )}
                 </Card>
