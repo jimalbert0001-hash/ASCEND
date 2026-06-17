@@ -748,6 +748,233 @@ app.put('/api/data/goals', (req: Request, res: Response) => {
   res.json(goals);
 });
 
+// ── Helper: verify token and return userId ────────────────────────────────────
+
+async function requireUser(req: Request, res: Response): Promise<string | null> {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return null; }
+  const verifyClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+  const { data, error } = await verifyClient.auth.getUser(accessToken);
+  if (error || !data.user) { res.status(401).json({ error: 'Invalid or expired token' }); return null; }
+  return data.user.id;
+}
+
+// ── Academics data routes ─────────────────────────────────────────────────────
+
+// GET /api/data/academics — study sessions + computed total hours
+app.get('/api/data/academics', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const { data, error } = await db
+    .from('study_sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('started_at', { ascending: false })
+    .limit(100);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const sessions = rows.map(s => ({
+    id: s['id'],
+    subjectId: s['subject_id'],
+    chapterId: s['chapter_id'],
+    startedAt: s['started_at'],
+    endedAt: s['ended_at'],
+    durationMins: s['duration_mins'],
+    sessionType: s['session_type'],
+    focusScore: s['focus_score'],
+    notes: s['notes'],
+  }));
+  const totalMins = sessions.reduce((sum, s) => sum + (Number(s.durationMins) || 0), 0);
+  const totalHours = Math.round((totalMins / 60) * 10) / 10;
+  res.json({ sessions, totalHours });
+});
+
+// POST /api/data/academics — save/upsert a study session
+app.post('/api/data/academics', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as {
+    subjectId?: string; chapterId?: string; durationMins?: number;
+    sessionType?: string; focusScore?: number; notes?: string;
+  };
+  const row = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    subject_id: body.subjectId ?? null,
+    chapter_id: body.chapterId ?? null,
+    started_at: new Date(Date.now() - (body.durationMins ?? 0) * 60000).toISOString(),
+    ended_at: new Date().toISOString(),
+    duration_mins: body.durationMins ?? 0,
+    session_type: body.sessionType ?? 'study',
+    focus_score: body.focusScore ?? 3,
+    notes: body.notes ?? null,
+  };
+  const { error } = await db.from('study_sessions').insert(row);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true, id: row.id });
+});
+
+// ── Chess data routes ─────────────────────────────────────────────────────────
+
+// GET /api/data/chess — training sessions + rating history + basic stats
+app.get('/api/data/chess', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const [sessionsRes, ratingsRes] = await Promise.all([
+    db.from('chess_training_sessions').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(100),
+    db.from('chess_rating_history').select('*').eq('user_id', userId).order('date', { ascending: true }),
+  ]);
+  if (sessionsRes.error) { res.status(500).json({ error: sessionsRes.error.message }); return; }
+  const sessionRows = (sessionsRes.data ?? []) as Array<Record<string, unknown>>;
+  const ratingRows = (ratingsRes.data ?? []) as Array<Record<string, unknown>>;
+  // Map sessions — columns may be camelCase (inserted directly from TrainingSession type)
+  // or snake_case depending on how the table was created. Return both forms so consumers work either way.
+  const sessions = sessionRows.map(s => ({
+    ...s,
+    sessionDate: s['session_date'] ?? s['sessionDate'] ?? s['date'],
+    durationMins: s['duration_mins'] ?? s['durationMins'],
+    focusArea: s['focus_area'] ?? s['focusArea'] ?? s['focus'],
+  }));
+  const ratings = ratingRows.map(r => ({
+    ...r,
+    sessionDate: r['date'],
+  }));
+  // Basic stats
+  const totalSessions = sessions.length;
+  const totalMins = sessions.reduce((sum, s) => sum + (Number(s.durationMins) || 0), 0);
+  const latestRating = ratingRows.length > 0 ? ratingRows[ratingRows.length - 1]?.['rating'] : null;
+  const stats = { totalSessions, totalMins, totalHours: Math.round(totalMins / 60), latestRating };
+  res.json({ sessions, ratings, stats });
+});
+
+// POST /api/data/chess — save a training session
+app.post('/api/data/chess', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as {
+    sessionType?: string; durationMins?: number; focus?: string; notes?: string; newRating?: number;
+  };
+  const today = new Date().toISOString().split('T')[0];
+  const row = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    date: today,
+    session_date: today,
+    sessionDate: today,
+    session_type: body.sessionType ?? 'tactics',
+    duration_mins: body.durationMins ?? 0,
+    durationMins: body.durationMins ?? 0,
+    focus: body.focus ?? null,
+    notes: body.notes ?? null,
+  };
+  const { error } = await db.from('chess_training_sessions').insert(row);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  if (body.newRating) {
+    await db.from('chess_rating_history').insert({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      date: today,
+      rating: body.newRating,
+      platform: 'lichess',
+    });
+  }
+  res.json({ ok: true, id: row.id });
+});
+
+// ── Guitar data routes ────────────────────────────────────────────────────────
+
+// GET /api/data/guitar — practice sessions + songs + basic stats
+app.get('/api/data/guitar', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const [sessionsRes, songsRes] = await Promise.all([
+    db.from('guitar_practice_sessions').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(100),
+    db.from('guitar_songs').select('*').eq('user_id', userId).order('start_date', { ascending: false }),
+  ]);
+  if (sessionsRes.error) { res.status(500).json({ error: sessionsRes.error.message }); return; }
+  const sessionRows = (sessionsRes.data ?? []) as Array<Record<string, unknown>>;
+  const songRows = (songsRes.data ?? []) as Array<Record<string, unknown>>;
+  // Normalise sessions — expose sessionDate for DailyReviewModal compatibility
+  const sessions = sessionRows.map(s => ({
+    ...s,
+    sessionDate: s['session_date'] ?? s['sessionDate'] ?? s['date'],
+    durationMins: s['duration_mins'] ?? s['durationMins'],
+  }));
+  const songs = songRows;
+  const totalMins = sessions.reduce((sum, s) => sum + (Number(s.durationMins) || 0), 0);
+  const songsLearned = songRows.filter(s => ['repertoire', 'polished'].includes(String(s['status'] ?? ''))).length;
+  const stats = {
+    totalSessions: sessions.length,
+    totalMins,
+    totalHours: Math.round(totalMins / 60),
+    songsLearned,
+  };
+  res.json({ sessions, songs, stats });
+});
+
+// POST /api/data/guitar — save a practice session
+app.post('/api/data/guitar', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as {
+    durationMins?: number; focusAreas?: string[]; notes?: string; qualityScore?: number;
+  };
+  const today = new Date().toISOString().split('T')[0];
+  const focus = (body.focusAreas ?? []).join(', ') || 'general';
+  const row = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    date: today,
+    session_date: today,
+    sessionDate: today,
+    duration_mins: body.durationMins ?? 0,
+    durationMins: body.durationMins ?? 0,
+    focus,
+    notes: body.notes ?? null,
+    intensity: 'focused',
+  };
+  const { error } = await db.from('guitar_practice_sessions').insert(row);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true, id: row.id });
+});
+
+// ── Tasks data route ──────────────────────────────────────────────────────────
+
+// GET /api/data/tasks — placeholder (tasks not yet in DB)
+app.get('/api/data/tasks', (_req: Request, res: Response) => {
+  res.json({ tasks: [] });
+});
+
 // Reset all user data — deletes every row owned by the authenticated user
 app.post('/api/data/reset', async (req: Request, res: Response) => {
   const authHeader = req.headers['authorization'] as string | undefined;
