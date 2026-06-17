@@ -296,19 +296,20 @@ const SYSTEM_PROMPTS: Record<CoachRole, string> = {
 
 const ACTION_INSTRUCTIONS = `
 
-DATA ACCESS: You have full read access to the user's real-time data snapshot provided below. Always reference specific numbers, chapter names, percentages, and stats when giving advice — never speak in generics when real data is available. Proactively surface insights like missed sessions, low completion, or rating drops.
+DATA ACCESS: You have full read access to the user's real-time data snapshot provided in USER DATA below. Always reference specific numbers, dates, chapter names, ratings, percentages, and session counts when giving advice — never speak in generics when real data is available. Proactively surface insights like missed sessions, low completion, stagnant ratings, or overdue revisions.
 
-WRITE ACTIONS: When the user explicitly asks you to log, update, or record something, respond naturally AND append exactly one action block at the very end of your message using this exact format (no spaces inside markers):
-%%ACTION_START%%{"action":"ACTION_TYPE","field":"value"}%%ACTION_END%%
+WRITE ACTIONS: When the user explicitly asks you to log, update, or record something, respond naturally AND append exactly one action block at the very end of your message using this exact format:
+<ACTION>{"type":"ACTION_TYPE","field":"value"}</ACTION>
 
 Supported action types:
 • log_study_session — fields: subjectId (phy/chem/math/eng/cs), subjectName, durationMins (number), sessionType (study/revision/mock_prep), notes
 • log_chess_session — fields: focus (tactics/openings/endgames/analysis/blitz/strategy), durationMins (number), notes
 • log_guitar_session — fields: focus (chords/scales/songs/technique/fingerpicking), durationMins (number), notes
-• mark_chapter_complete — fields: subjectId (phy/chem/math/eng/cs), chapterName (use exact chapter name from data)
+• mark_chapter_complete — fields: subjectId (phy/chem/math/eng/cs), chapterName (use exact chapter name from the data)
 • add_chess_rating — fields: rating (number), platform (lichess/chess.com/otb)
+• log_startup_progress — fields: projectName, metric (mrr/users/bugs/milestone), value
 
-Rules: Only include one action block per response. Only include it when the user explicitly requests a change. Do not make up data or invent chapters.`;
+Rules: Only include one action block per response. Only include it when the user explicitly requests a change. Do not make up data or invent chapters that don't appear in the snapshot.`;
 
 function getSystemPrompt(role: CoachRole, personalityOverride?: string, context?: string): string {
   const base = SYSTEM_PROMPTS[role] ?? SYSTEM_PROMPTS.achievement;
@@ -331,13 +332,105 @@ app.get('/api/ai/status', (_req: Request, res: Response) => {
   });
 });
 
-// AI — user context (used by DailyScoreCard and similar widgets)
-app.get('/api/ai/context', (_req: Request, res: Response) => {
+// ── Server-side context builder ───────────────────────────────────────────────
+
+async function buildContextFromSupabase(userId: string, accessToken: string): Promise<string> {
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+
+  async function q<T = Record<string, unknown>>(
+    fn: () => { then: (cb: (v: { data: T[] | null; error: unknown }) => T[]) => Promise<T[]> }
+  ): Promise<T[]> {
+    try { return await (fn() as unknown as Promise<{ data: T[] | null; error: unknown }>).then(r => r.data ?? []); }
+    catch { return []; }
+  }
+
+  const [studySessions, chessSessions, ratings, guitarSessions, songs, projects] = await Promise.all([
+    q(() => db.from('study_sessions').select('subject_id,duration_mins,session_type,started_at,notes')
+      .eq('user_id', userId).order('started_at', { ascending: false }).limit(10) as unknown as Promise<{ data: Record<string, unknown>[] | null; error: unknown }>),
+    q(() => db.from('chess_training_sessions').select('*')
+      .eq('user_id', userId).order('date', { ascending: false }).limit(5) as unknown as Promise<{ data: Record<string, unknown>[] | null; error: unknown }>),
+    q(() => db.from('chess_rating_history').select('date,rating,platform')
+      .eq('user_id', userId).order('date', { ascending: false }).limit(5) as unknown as Promise<{ data: Record<string, unknown>[] | null; error: unknown }>),
+    q(() => db.from('guitar_practice_sessions').select('*')
+      .eq('user_id', userId).order('date', { ascending: false }).limit(5) as unknown as Promise<{ data: Record<string, unknown>[] | null; error: unknown }>),
+    q(() => db.from('guitar_songs').select('title,status').eq('user_id', userId) as unknown as Promise<{ data: Record<string, unknown>[] | null; error: unknown }>),
+    q(() => db.from('startup_projects').select('name,stage,description').eq('user_id', userId).limit(5) as unknown as Promise<{ data: Record<string, unknown>[] | null; error: unknown }>),
+  ]);
+
+  const totalStudyMins = studySessions.reduce((s, r) => s + (Number(r['duration_mins']) || 0), 0);
+  const totalGuitarMins = guitarSessions.reduce((s, r) => s + (Number(r['duration_mins'] ?? r['durationMins']) || 0), 0);
+  const latestRating = ratings[0]?.['rating'] ?? null;
+
+  const snapshot = {
+    academics: {
+      totalStudyHours: Math.round((totalStudyMins / 60) * 10) / 10,
+      recentSessions: studySessions.map(s => ({
+        subjectId: s['subject_id'],
+        durationMins: s['duration_mins'],
+        type: s['session_type'],
+        date: String(s['started_at'] ?? '').slice(0, 10),
+        notes: s['notes'] ?? null,
+      })),
+    },
+    chess: {
+      latestRating,
+      ratingHistory: ratings.slice(0, 5).map(r => ({ date: r['date'], rating: r['rating'], platform: r['platform'] })),
+      recentSessions: chessSessions.map(s => ({
+        date: s['date'] ?? s['session_date'] ?? s['sessionDate'],
+        focus: s['focus'] ?? s['focus_area'] ?? s['focusArea'],
+        durationMins: s['duration_mins'] ?? s['durationMins'],
+      })),
+    },
+    guitar: {
+      totalPracticeHours: Math.round((totalGuitarMins / 60) * 10) / 10,
+      recentSessions: guitarSessions.map(s => ({
+        date: s['date'],
+        focus: s['focus'],
+        durationMins: s['duration_mins'] ?? s['durationMins'],
+      })),
+      songs: {
+        learning: songs.filter(s => s['status'] === 'learning').map(s => s['title']),
+        repertoire: songs.filter(s => s['status'] === 'repertoire').map(s => s['title']),
+        polished: songs.filter(s => s['status'] === 'polished').map(s => s['title']),
+      },
+    },
+    startup: {
+      projects: projects.map(p => ({
+        name: p['name'],
+        stage: p['stage'],
+        description: String(p['description'] ?? '').slice(0, 120),
+      })),
+    },
+  };
+
+  return JSON.stringify(snapshot, null, 2);
+}
+
+// AI — user context (authenticated — returns real DB snapshot)
+app.get('/api/ai/context', async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const accessToken = getAccessToken(req);
+  if (!accessToken) {
+    res.json({ reviews: { lastDailyScore: 0 }, user: { name: 'User', stats: {}, activeDomains: [] }, goals: [], tasks: [] });
+    return;
+  }
+  const verifyClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+  const { data: userData, error } = await verifyClient.auth.getUser(accessToken);
+  if (error || !userData.user) {
+    res.json({ reviews: { lastDailyScore: 0 }, user: { name: 'User', stats: {}, activeDomains: [] }, goals: [], tasks: [] });
+    return;
+  }
+  const userId = userData.user.id;
+  const contextJson = await buildContextFromSupabase(userId, accessToken);
+  const snapshot = JSON.parse(contextJson) as Record<string, unknown>;
   res.json({
-    reviews: { lastDailyScore: 0 },
-    user: { name: 'User', stats: { studyHours: 0, chessRating: 0, habitStreak: 0 }, activeDomains: [] },
-    goals: [],
-    tasks: [],
+    ...snapshot,
+    user: {
+      id: userId,
+      name: userData.user.user_metadata?.['full_name'] ?? userData.user.email ?? 'User',
+    },
   });
 });
 
@@ -349,7 +442,7 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
     return;
   }
 
-  const { messages, role, stream, personalityOverride, context } = req.body as {
+  const { messages, role, stream, personalityOverride, context: clientContext } = req.body as {
     messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     role: CoachRole;
     userId?: string;
@@ -357,6 +450,22 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
     personalityOverride?: string;
     context?: string;
   };
+
+  // Build context server-side when the user is authenticated (preferred — reads real DB data).
+  // Fall back to whatever context the client passed when no token is present.
+  let context = clientContext;
+  const accessToken = getAccessToken(req);
+  if (accessToken) {
+    try {
+      const verifyClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+      const { data: userData } = await verifyClient.auth.getUser(accessToken);
+      if (userData?.user?.id) {
+        context = await buildContextFromSupabase(userData.user.id, accessToken);
+      }
+    } catch {
+      // ignore — fall back to clientContext
+    }
+  }
 
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: 'messages array is required' });
@@ -973,6 +1082,173 @@ app.post('/api/data/guitar', async (req: Request, res: Response) => {
 // GET /api/data/tasks — placeholder (tasks not yet in DB)
 app.get('/api/data/tasks', (_req: Request, res: Response) => {
   res.json({ tasks: [] });
+});
+
+// ── AI Action handler routes ──────────────────────────────────────────────────
+// These routes let the frontend (and AI-generated actions) write data after
+// the AI instructs a change via an <ACTION> block.
+
+// POST /api/actions/log-session — log an academic study session
+app.post('/api/actions/log-session', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as {
+    subjectId?: string; subjectName?: string; durationMins?: number;
+    sessionType?: string; focusScore?: number; notes?: string; date?: string;
+  };
+  const started = body.date
+    ? new Date(body.date).toISOString()
+    : new Date(Date.now() - (body.durationMins ?? 0) * 60000).toISOString();
+  const row = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    subject_id: body.subjectId ?? null,
+    chapter_id: null,
+    started_at: started,
+    ended_at: new Date().toISOString(),
+    duration_mins: body.durationMins ?? 60,
+    session_type: body.sessionType ?? 'study',
+    focus_score: body.focusScore ?? 4,
+    notes: body.notes ?? `Logged via AI Mentor — ${body.subjectName ?? body.subjectId ?? 'study'}`,
+  };
+  const { error } = await db.from('study_sessions').insert(row);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true, id: row.id, message: `✓ Logged ${body.durationMins ?? 60} min ${body.sessionType ?? 'study'} session for ${body.subjectName ?? body.subjectId ?? 'your subject'}` });
+});
+
+// POST /api/actions/mark-chapter — mark a chapter complete by ID or name match
+app.post('/api/actions/mark-chapter', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as { chapterId?: string; chapterName?: string; subjectId?: string };
+  if (body.chapterId) {
+    const { error } = await db.from('chapters').update({
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+      understanding_level: 3,
+    }).eq('id', body.chapterId).eq('user_id', userId);
+    if (error) { res.status(500).json({ error: error.message }); return; }
+    res.json({ ok: true, message: `✓ Marked chapter as complete` });
+    return;
+  }
+  if (body.chapterName) {
+    // Find by name (partial match) within user's chapters
+    let query = db.from('chapters').select('id, name').ilike('name', `%${body.chapterName}%`).eq('user_id', userId);
+    if (body.subjectId) query = query.eq('subject_id', body.subjectId);
+    const { data, error } = await query.limit(1).single();
+    if (error || !data) {
+      res.status(404).json({ error: `Chapter not found: "${body.chapterName}"` });
+      return;
+    }
+    const chapter = data as Record<string, unknown>;
+    await db.from('chapters').update({
+      is_completed: true,
+      completed_at: new Date().toISOString(),
+      understanding_level: 3,
+    }).eq('id', chapter['id']);
+    res.json({ ok: true, id: chapter['id'], message: `✓ Marked "${chapter['name']}" as complete` });
+    return;
+  }
+  res.status(400).json({ error: 'Provide chapterId or chapterName' });
+});
+
+// POST /api/actions/log-chess — log a chess training session
+app.post('/api/actions/log-chess', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as { durationMins?: number; focus?: string; notes?: string; rating?: number; platform?: string };
+  const today = new Date().toISOString().split('T')[0];
+  const row = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    date: today,
+    sessionDate: today,
+    duration_mins: body.durationMins ?? 60,
+    durationMins: body.durationMins ?? 60,
+    focus: body.focus ?? 'tactics',
+    notes: body.notes ?? 'Logged via AI Mentor',
+    intensity: 'medium',
+  };
+  const { error } = await db.from('chess_training_sessions').insert(row);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  if (body.rating) {
+    await db.from('chess_rating_history').insert({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      date: today,
+      rating: body.rating,
+      platform: body.platform ?? 'lichess',
+      change: 0,
+    });
+  }
+  res.json({ ok: true, id: row.id, message: `✓ Logged ${body.durationMins ?? 60} min chess ${body.focus ?? 'training'} session` });
+});
+
+// POST /api/actions/log-guitar — log a guitar practice session
+app.post('/api/actions/log-guitar', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as { durationMins?: number; minutes?: number; focus?: string; notes?: string };
+  const durationMins = body.durationMins ?? body.minutes ?? 30;
+  const today = new Date().toISOString().split('T')[0];
+  const row = {
+    id: crypto.randomUUID(),
+    user_id: userId,
+    date: today,
+    sessionDate: today,
+    duration_mins: durationMins,
+    durationMins,
+    focus: body.focus ?? 'technique',
+    notes: body.notes ?? 'Logged via AI Mentor',
+    intensity: 'focused',
+  };
+  const { error } = await db.from('guitar_practice_sessions').insert(row);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true, id: row.id, message: `✓ Logged ${durationMins} min guitar practice (${body.focus ?? 'technique'})` });
+});
+
+// POST /api/actions/update-metric — update a startup project metric
+app.post('/api/actions/update-metric', async (req: Request, res: Response) => {
+  const accessToken = getAccessToken(req);
+  if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const userId = await requireUser(req, res);
+  if (!userId) return;
+  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const body = req.body as { projectName?: string; metric?: string; value?: number | string };
+  if (!body.metric || body.value === undefined) {
+    res.status(400).json({ error: 'metric and value are required' });
+    return;
+  }
+  const validMetrics: Record<string, string> = { mrr: 'mrr', users: 'users', bugs: 'open_bugs', milestone: 'latest_milestone' };
+  const col = validMetrics[body.metric];
+  if (!col) { res.status(400).json({ error: `Unknown metric: ${body.metric}` }); return; }
+  let query = db.from('startup_projects').update({ [col]: body.value, updated_at: new Date().toISOString() }).eq('user_id', userId);
+  if (body.projectName) query = query.ilike('name', `%${body.projectName}%`);
+  const { error } = await query;
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true, message: `✓ Updated ${body.metric} to ${body.value}${body.projectName ? ` for ${body.projectName}` : ''}` });
 });
 
 // Reset all user data — deletes every row owned by the authenticated user
