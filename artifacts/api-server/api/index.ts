@@ -409,27 +409,37 @@ async function buildContextFromSupabase(userId: string, accessToken: string): Pr
 }
 
 // AI — user context (authenticated — returns real DB snapshot)
+const EMPTY_STATS = { studyHours: 0, chessRating: 0, habitStreak: 0 };
+
 app.get('/api/ai/context', async (req: Request, res: Response) => {
   res.setHeader('Cache-Control', 'no-store');
   const accessToken = getAccessToken(req);
   if (!accessToken) {
-    res.json({ reviews: { lastDailyScore: 0 }, user: { name: 'User', stats: {}, activeDomains: [] }, goals: [], tasks: [] });
+    res.json({ reviews: { lastDailyScore: 0 }, user: { name: 'User', stats: EMPTY_STATS, activeDomains: [] }, goals: [], tasks: [] });
     return;
   }
   const verifyClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
   const { data: userData, error } = await verifyClient.auth.getUser(accessToken);
   if (error || !userData.user) {
-    res.json({ reviews: { lastDailyScore: 0 }, user: { name: 'User', stats: {}, activeDomains: [] }, goals: [], tasks: [] });
+    res.json({ reviews: { lastDailyScore: 0 }, user: { name: 'User', stats: EMPTY_STATS, activeDomains: [] }, goals: [], tasks: [] });
     return;
   }
   const userId = userData.user.id;
   const contextJson = await buildContextFromSupabase(userId, accessToken);
   const snapshot = JSON.parse(contextJson) as Record<string, unknown>;
+  const academics = snapshot['academics'] as { totalStudyHours?: number } | undefined;
+  const chess = snapshot['chess'] as { latestRating?: number | null } | undefined;
   res.json({
     ...snapshot,
     user: {
       id: userId,
       name: userData.user.user_metadata?.['full_name'] ?? userData.user.email ?? 'User',
+      stats: {
+        studyHours: academics?.totalStudyHours ?? 0,
+        chessRating: (chess?.latestRating ?? 0) as number,
+        habitStreak: 0,
+      },
+      activeDomains: [],
     },
   });
 });

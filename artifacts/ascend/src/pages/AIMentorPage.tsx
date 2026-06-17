@@ -276,8 +276,8 @@ function InsightsView({
 function StatsCard({ context }: { context: UserContext }) {
   const items = [
     { label: 'Streak', value: `${context.reviews?.streak ?? 0}d` },
-    { label: 'Study', value: `${context.user.stats.studyHours}h` },
-    { label: 'Chess', value: `${context.user.stats.chessRating}` },
+    { label: 'Study', value: `${context.user?.stats?.studyHours ?? 0}h` },
+    { label: 'Chess', value: `${context.user?.stats?.chessRating ?? 0}` },
   ];
 
   return (
