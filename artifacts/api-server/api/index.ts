@@ -707,15 +707,25 @@ function mapGameRow(g: Record<string, unknown>): Record<string, unknown> {
 app.get('/api/chess/accounts/:userId', async (req: Request, res: Response) => {
   const accessToken = getAccessToken(req);
   if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
-  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
-  const { data, error } = await db.from('chess_accounts').select('*').eq('user_id', req.params['userId']).maybeSingle();
-  if (error) { res.status(500).json({ error: error.message }); return; }
-  res.json({
-    chesscomUsername: (data as Record<string, unknown> | null)?.['chesscom_username'] ?? '',
-    lichessUsername: (data as Record<string, unknown> | null)?.['lichess_username'] ?? '',
-  });
+  try {
+    const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    const { data, error } = await db.from('chess_accounts').select('*').eq('user_id', req.params['userId']).maybeSingle();
+    if (error) {
+      logger.error({ err: error.message, table: 'chess_accounts', userId: req.params['userId'] }, 'chess_accounts SELECT failed');
+      res.status(500).json({ error: error.message });
+      return;
+    }
+    res.json({
+      chesscomUsername: (data as Record<string, unknown> | null)?.['chesscom_username'] ?? '',
+      lichessUsername: (data as Record<string, unknown> | null)?.['lichess_username'] ?? '',
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err: message, route: '/api/chess/accounts/:userId' }, 'Unexpected exception');
+    res.status(500).json({ error: message });
+  }
 });
 
 // Chess Accounts — PUT (upsert)
@@ -740,16 +750,26 @@ app.put('/api/chess/accounts/:userId', async (req: Request, res: Response) => {
 app.get('/api/chess/games/:userId', async (req: Request, res: Response) => {
   const accessToken = getAccessToken(req);
   if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
-  const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
-  let query = db.from('chess_games').select('*').eq('user_id', req.params['userId']).order('game_date', { ascending: false });
-  if (req.query['platform']) {
-    query = query.eq('platform', req.query['platform'] as string);
+  try {
+    const db = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    let query = db.from('chess_games').select('*').eq('user_id', req.params['userId']).order('game_date', { ascending: false });
+    if (req.query['platform']) {
+      query = query.eq('platform', req.query['platform'] as string);
+    }
+    const { data, error } = await query;
+    if (error) {
+      logger.error({ err: error.message, table: 'chess_games', userId: req.params['userId'] }, 'chess_games SELECT failed');
+      res.status(500).json({ error: error.message });
+      return;
+    }
+    res.json((data ?? []).map(g => mapGameRow(g as Record<string, unknown>)));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err: message, route: '/api/chess/games/:userId' }, 'Unexpected exception');
+    res.status(500).json({ error: message });
   }
-  const { data, error } = await query;
-  if (error) { res.status(500).json({ error: error.message }); return; }
-  res.json((data ?? []).map(g => mapGameRow(g as Record<string, unknown>)));
 });
 
 // Chess Games — POST (bulk save/upsert)
@@ -872,10 +892,21 @@ app.put('/api/data/goals', (req: Request, res: Response) => {
 async function requireUser(req: Request, res: Response): Promise<string | null> {
   const accessToken = getAccessToken(req);
   if (!accessToken) { res.status(401).json({ error: 'Not authenticated' }); return null; }
-  const verifyClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
-  const { data, error } = await verifyClient.auth.getUser(accessToken);
-  if (error || !data.user) { res.status(401).json({ error: 'Invalid or expired token' }); return null; }
-  return data.user.id;
+  try {
+    const verifyClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!);
+    const { data, error } = await verifyClient.auth.getUser(accessToken);
+    if (error || !data.user) {
+      logger.warn({ err: error?.message ?? 'no user returned', path: req.path }, 'requireUser: auth verification failed');
+      res.status(401).json({ error: 'Invalid or expired token' });
+      return null;
+    }
+    return data.user.id;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error({ err: message, path: req.path }, 'requireUser: unexpected exception during auth.getUser');
+    res.status(401).json({ error: 'Auth verification error' });
+    return null;
+  }
 }
 
 // ── Academics data routes ─────────────────────────────────────────────────────
