@@ -269,22 +269,22 @@ export function getSubjectStats(subject: Subject) {
   return { completed, total, completionPct, totalHours, avgUnderstanding, dueRevisions };
 }
 
-export function computeTotalStats(subjects: Subject[]) {
+export function computeTotalStats(subjects: Subject[], tests?: MockTest[]) {
+  const boardDate = new Date('2027-03-01');
+  const daysUntilBoards = Math.ceil((boardDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   if (subjects.length === 0) {
-    const boardDate = new Date('2027-03-01');
-    const daysUntilBoards = Math.ceil((boardDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
     return { totalHours: 0, avgCompletion: 0, avgMockScore: 0, predictedScore: 0, daysUntilBoards, dueRevisions: 0 };
   }
   const allSubjectStats = subjects.map(s => getSubjectStats(s));
   const totalHours = allSubjectStats.reduce((s, x) => s + x.totalHours, 0);
   const avgCompletion = Math.round(allSubjectStats.reduce((s, x) => s + x.completionPct, 0) / subjects.length);
-  const relevantTests = mockTestsData.filter(t => t.subjectId !== null);
+  // Use provided tests; if none given, respect isDataCleared() before falling back to static data
+  const effectiveTests = tests !== undefined ? tests : (isDataCleared() ? [] : mockTestsData);
+  const relevantTests = effectiveTests.filter(t => t.subjectId !== null);
   const avgMockScore = relevantTests.length > 0
     ? relevantTests.reduce((s, t) => s + (t.obtainedMarks / t.totalMarks * 100), 0) / relevantTests.length
     : 0;
   const predictedScore = Math.round(avgCompletion * 0.5 + avgMockScore * 0.5);
-  const boardDate = new Date('2027-03-01');
-  const daysUntilBoards = Math.ceil((boardDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   const dueRevisions = subjects.reduce((s, sub) => s + sub.chapters.filter(c => c.nextRevision && new Date(c.nextRevision) <= new Date()).length, 0);
   return { totalHours: Math.round(totalHours * 10) / 10, avgCompletion, avgMockScore: Math.round(avgMockScore * 10) / 10, predictedScore, daysUntilBoards, dueRevisions };
 }

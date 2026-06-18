@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { subjectsData, getSubjectStats, computeTotalStats } from "@/lib/academics-data";
+import { subjectsData, getSubjectStats, computeTotalStats, mockTestsData, type MockTest } from "@/lib/academics-data";
 import { useAcademicsStore } from "@/stores/academics.store";
 import { GoalsBanner } from "@/components/GoalsBanner";
 import { logStudySession, fetchAcademicsData } from "@/lib/log-api";
+import { getMockTests } from "@/lib/academics-supabase";
+import { isDataCleared } from "@/lib/data-cleared";
 import { useAuth } from "@/providers/AuthProvider";
 
 const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
@@ -190,11 +192,12 @@ export function AcademicsOverview() {
   const [dbSessions, setDbSessions] = useState<DBSession[]>([]);
   const [dbTotalHours, setDbTotalHours] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(true);
+  const [dbMockTests, setDbMockTests] = useState<MockTest[]>(() => isDataCleared() ? [] : mockTestsData);
   const { user } = useAuth();
   const userId = user?.id ?? 'mock-user-1';
   const { subjects: storeSubjects, load: loadSubjects } = useAcademicsStore();
 
-  const stats = computeTotalStats(storeSubjects);
+  const stats = computeTotalStats(storeSubjects, dbMockTests);
   const boardScore500 = Math.round((stats.avgCompletion * 0.4 + stats.avgMockScore * 0.6) / 100 * 500);
   const boardPct = Math.round(boardScore500 / 5);
   const boardColor = boardPct >= 80 ? '#22c55e' : boardPct >= 70 ? '#f59e0b' : '#ef4444';
@@ -211,7 +214,11 @@ export function AcademicsOverview() {
     }
   }
 
-  useEffect(() => { loadData(); loadSubjects(userId); }, [userId]);
+  useEffect(() => {
+    loadData();
+    loadSubjects(userId);
+    getMockTests(userId).then(data => setDbMockTests(data ?? []));
+  }, [userId]);
 
   const displayHours = dbTotalHours !== null ? dbTotalHours : stats.totalHours;
   const recentSessions = dbSessions.slice(0, 6);
