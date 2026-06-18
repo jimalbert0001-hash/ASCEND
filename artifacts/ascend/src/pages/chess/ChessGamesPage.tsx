@@ -14,6 +14,9 @@ import {
   ChessComGame, LichessGame, ChessGameData, ChessGameDataPlatform
 } from "@/lib/chess-api";
 
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+const LS_KEY = (userId: string) => `ascend-chess-sync-${userId}`;
+
 const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
 const RESULT_COLORS: Record<string, string> = {
@@ -173,6 +176,7 @@ export function ChessGamesPage() {
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [resultFilter, setResultFilter] = useState<string>('all');
   const [accounts, setAccounts] = useState<{ chesscomUsername: string; lichessUsername: string } | null>(null);
+  const [lastSync, setLastSync] = useState<number | null>(null);
 
   const loadGames = useCallback(async () => {
     setLoading(true);
@@ -181,7 +185,14 @@ export function ChessGamesPage() {
       setGames(data);
       // Also fetch accounts
       const accRes = await apiFetch(`/api/chess/accounts/${userId}`);
-      if (accRes.ok) setAccounts(await accRes.json());
+      if (accRes.ok) {
+        const acc = await accRes.json();
+        setAccounts(acc);
+      } else {
+        setAccounts(null);
+      }
+      const stored = localStorage.getItem(LS_KEY(userId));
+      if (stored) setLastSync(Number(stored));
     } catch (err) {
       console.error(err);
     } finally {
@@ -223,6 +234,9 @@ export function ChessGamesPage() {
       await saveChessGames(userId, mapped);
       setGames(mapped);
       setSaved(true);
+      const now = Date.now();
+      setLastSync(now);
+      localStorage.setItem(LS_KEY(userId), String(now));
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch games');
@@ -230,6 +244,18 @@ export function ChessGamesPage() {
       setFetching(false);
     }
   }
+
+  // Auto-sync when accounts are loaded and at least one username is configured
+  useEffect(() => {
+    if (!accounts || fetching) return;
+    const hasUsername = accounts.chesscomUsername || accounts.lichessUsername;
+    if (!hasUsername) return;
+    const lastSyncTime = Number(localStorage.getItem(LS_KEY(userId)) || '0');
+    if (Date.now() - lastSyncTime > SYNC_COOLDOWN_MS) {
+      // Fire-and-forget — don't block UI
+      fetchFromAPIs().catch(console.warn);
+    }
+  }, [accounts, userId, fetching]);
 
   const filtered = games.filter(g => {
     if (platformFilter !== 'all' && g.platform !== platformFilter) return false;
