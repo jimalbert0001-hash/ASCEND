@@ -742,7 +742,19 @@ app.put('/api/chess/accounts/:userId', async (req: Request, res: Response) => {
     lichess_username: lichessUsername ?? '',
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
-  if (error) { res.status(500).json({ error: error.message }); return; }
+  if (error) {
+    logger.error({
+      err: error.message,
+      errFull: error,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      userId: req.params['userId'],
+      route: 'PUT /api/chess/accounts/:userId',
+    }, 'chess_accounts upsert failed');
+    res.status(500).json({ error: error.message, code: error.code, details: error.details });
+    return;
+  }
   res.json({ ok: true });
 });
 
@@ -760,10 +772,23 @@ app.get('/api/chess/games/:userId', async (req: Request, res: Response) => {
     }
     const { data, error } = await query;
     if (error) {
-      logger.error({ err: error.message, table: 'chess_games', userId: req.params['userId'] }, 'chess_games SELECT failed');
-      res.status(500).json({ error: error.message });
+      logger.error({
+        err: error.message,
+        errFull: error,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        table: 'chess_games',
+        userId: req.params['userId'],
+      }, 'chess_games SELECT failed');
+      res.status(500).json({ error: error.message, code: error.code, details: error.details });
       return;
     }
+    logger.info({
+      userId: req.params['userId'],
+      rowCount: (data ?? []).length,
+      platformFilter: req.query['platform'] ?? 'all',
+    }, 'chess_games GET success');
     res.json((data ?? []).map(g => mapGameRow(g as Record<string, unknown>)));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -806,7 +831,23 @@ app.post('/api/chess/games/:userId', async (req: Request, res: Response) => {
     analysis_notes: g.analysisNotes ?? null,
   }));
   const { error } = await db.from('chess_games').upsert(rows, { onConflict: 'id' });
-  if (error) { res.status(500).json({ error: error.message }); return; }
+  if (error) {
+    logger.error({
+      err: error.message,
+      errFull: error,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      userId: req.params['userId'],
+      rowCount: rows.length,
+    }, 'chess_games upsert failed');
+    res.status(500).json({ error: error.message, code: error.code, details: error.details });
+    return;
+  }
+  logger.info({
+    userId: req.params['userId'],
+    rowCount: rows.length,
+  }, 'chess_games POST success');
   res.json({ ok: true, count: rows.length });
 });
 

@@ -182,6 +182,7 @@ export function ChessGamesPage() {
 
   const loadGames = useCallback(async () => {
     setLoading(true);
+    setError('');
     try {
       const data = await fetchChessGames(userId);
       setGames(data);
@@ -191,12 +192,16 @@ export function ChessGamesPage() {
         const acc = await accRes.json();
         setAccounts(acc);
       } else {
+        const accErr = await accRes.text().catch(() => '');
+        console.warn('Failed to load chess accounts', accRes.status, accErr);
         setAccounts(null);
       }
       const stored = localStorage.getItem(LS_KEY(userId));
       if (stored) setLastSync(Number(stored));
     } catch (err) {
-      console.error(err);
+      const message = err instanceof Error ? err.message : 'Failed to load games';
+      console.error('loadGames error:', err);
+      setError(`Could not load games: ${message}`);
     } finally {
       setLoading(false);
     }
