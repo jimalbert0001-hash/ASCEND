@@ -212,29 +212,38 @@ export function ChessGamesPage() {
   async function fetchFromAPIs() {
     setFetching(true);
     setError('');
+    console.log('[FETCH GAMES] Clicked. accounts =', accounts, 'userId =', userId);
     try {
       const chesscomGames: ChessComGame[] = [];
       const lichessGames: LichessGame[] = [];
       const fetchErrors: string[] = [];
       if (accounts?.chesscomUsername) {
+        console.log('[FETCH GAMES] Calling Chess.com API for username:', accounts.chesscomUsername);
         try {
           const cg = await fetchChessComAllGames(accounts.chesscomUsername);
+          console.log('[FETCH GAMES] Chess.com returned', cg.length, 'games');
           chesscomGames.push(...cg);
         } catch (e) {
           const message = e instanceof Error ? e.message : 'Unknown error';
-          console.warn('Chess.com fetch failed', message);
+          console.warn('[FETCH GAMES] Chess.com fetch failed:', message);
           fetchErrors.push(`Chess.com: ${message}`);
         }
+      } else {
+        console.log('[FETCH GAMES] No Chess.com username configured');
       }
       if (accounts?.lichessUsername) {
+        console.log('[FETCH GAMES] Calling Lichess API for username:', accounts.lichessUsername);
         try {
           const lg = await fetchLichessGames(accounts.lichessUsername, 30);
+          console.log('[FETCH GAMES] Lichess returned', lg.length, 'games');
           lichessGames.push(...lg);
         } catch (e) {
           const message = e instanceof Error ? e.message : 'Unknown error';
-          console.warn('Lichess fetch failed', message);
+          console.warn('[FETCH GAMES] Lichess fetch failed:', message);
           fetchErrors.push(`Lichess: ${message}`);
         }
+      } else {
+        console.log('[FETCH GAMES] No Lichess username configured');
       }
       const mapped: ChessGameData[] = [
         ...chesscomGames.map(g => toChessGameData('chess.com', g, accounts?.chesscomUsername || '')),

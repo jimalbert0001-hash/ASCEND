@@ -110,15 +110,25 @@ export interface ChessComGame {
 
 export async function fetchChessComGames(username: string, year: number, month: number): Promise<ChessComGame[]> {
   const monthStr = String(month).padStart(2, '0');
-  const res = await fetch(`https://api.chess.com/pub/player/${username.toLowerCase()}/games/${year}/${monthStr}`, {
+  const url = `https://api.chess.com/pub/player/${username.toLowerCase()}/games/${year}/${monthStr}`;
+  console.log('[ChessAPI] GET', url);
+  const res = await fetch(url, {
     headers: { 'User-Agent': 'ASCEND/1.0' },
   });
+  console.log('[ChessAPI] Chess.com response', res.status, url);
   if (!res.ok) {
-    if (res.status === 404) return [];
+    if (res.status === 404) {
+      console.log('[ChessAPI] Chess.com 404, returning empty');
+      return [];
+    }
+    const text = await res.text().catch(() => '');
+    console.warn('[ChessAPI] Chess.com error body:', text);
     throw new Error(`Chess.com API error: ${res.status}`);
   }
   const data = await res.json();
-  return data.games || [];
+  const games = data.games || [];
+  console.log('[ChessAPI] Chess.com parsed', games.length, 'games from', url);
+  return games;
 }
 
 export async function fetchChessComAllGames(username: string): Promise<ChessComGame[]> {
@@ -164,18 +174,27 @@ export interface LichessGame {
 }
 
 export async function fetchLichessGames(username: string, max = 30): Promise<LichessGame[]> {
-  const res = await fetch(`https://lichess.org/api/games/user/${username}?perfType=rapid&max=${max}&pgnInJson=false&moves=true&tags=true&clocks=true&evals=false&opening=true&fen=false`, {
+  const url = `https://lichess.org/api/games/user/${username}?perfType=rapid&max=${max}&pgnInJson=false&moves=true&tags=true&clocks=true&evals=false&opening=true&fen=false`;
+  console.log('[ChessAPI] GET', url);
+  const res = await fetch(url, {
     headers: {
       'Accept': 'application/x-ndjson',
       'User-Agent': 'ASCEND/1.0',
     },
   });
+  console.log('[ChessAPI] Lichess response', res.status, url);
   if (!res.ok) {
-    if (res.status === 404) return [];
+    if (res.status === 404) {
+      console.log('[ChessAPI] Lichess 404, returning empty');
+      return [];
+    }
+    const text = await res.text().catch(() => '');
+    console.warn('[ChessAPI] Lichess error body:', text);
     throw new Error(`Lichess API error: ${res.status}`);
   }
   const text = await res.text();
   const lines = text.trim().split('\n').filter(Boolean);
+  console.log('[ChessAPI] Lichess raw text length:', text.length, 'lines:', lines.length);
   const games: LichessGame[] = [];
   for (const line of lines) {
     try {
@@ -184,5 +203,6 @@ export async function fetchLichessGames(username: string, max = 30): Promise<Lic
       // skip malformed lines
     }
   }
+  console.log('[ChessAPI] Lichess parsed', games.length, 'games');
   return games;
 }
