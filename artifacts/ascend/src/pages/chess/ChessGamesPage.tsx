@@ -38,10 +38,11 @@ function toChessGameData(platform: 'chess.com' | 'lichess', game: ChessComGame |
     else if (player.result === 'agreed' || player.result === 'repetition' || player.result === 'stalemate' || player.result === 'insufficient' || player.result === '50move' || player.result === 'timevsinsufficient') result = 'draw';
     else result = 'loss';
     const opening = parseChessComOpening(g.pgn);
+    const externalId = g.url.split('/').pop() || '';
     return {
-      id: crypto.randomUUID(),
+      id: externalId,
       platform: 'chess.com' as ChessGameDataPlatform,
-      externalId: g.url.split('/').pop() || '',
+      externalId,
       pgn: g.pgn,
       fen: g.fen,
       result,
@@ -67,10 +68,11 @@ function toChessGameData(platform: 'chess.com' | 'lichess', game: ChessComGame |
     if (g.winner === undefined) result = 'draw';
     else if (g.winner === playerColor) result = 'win';
     else result = 'loss';
+    const externalId = g.id;
     return {
-      id: crypto.randomUUID(),
+      id: externalId,
       platform: 'lichess' as ChessGameDataPlatform,
-      externalId: g.id,
+      externalId,
       pgn: g.pgn,
       fen: undefined,
       result,
@@ -208,12 +210,15 @@ export function ChessGamesPage() {
     try {
       const chesscomGames: ChessComGame[] = [];
       const lichessGames: LichessGame[] = [];
+      const fetchErrors: string[] = [];
       if (accounts?.chesscomUsername) {
         try {
           const cg = await fetchChessComAllGames(accounts.chesscomUsername);
           chesscomGames.push(...cg);
         } catch (e) {
-          console.warn('Chess.com fetch failed', e);
+          const message = e instanceof Error ? e.message : 'Unknown error';
+          console.warn('Chess.com fetch failed', message);
+          fetchErrors.push(`Chess.com: ${message}`);
         }
       }
       if (accounts?.lichessUsername) {
@@ -221,7 +226,9 @@ export function ChessGamesPage() {
           const lg = await fetchLichessGames(accounts.lichessUsername, 30);
           lichessGames.push(...lg);
         } catch (e) {
-          console.warn('Lichess fetch failed', e);
+          const message = e instanceof Error ? e.message : 'Unknown error';
+          console.warn('Lichess fetch failed', message);
+          fetchErrors.push(`Lichess: ${message}`);
         }
       }
       const mapped: ChessGameData[] = [
@@ -238,6 +245,10 @@ export function ChessGamesPage() {
       setLastSync(now);
       localStorage.setItem(LS_KEY(userId), String(now));
       setTimeout(() => setSaved(false), 2000);
+      // Show fetch errors (if any) so user knows something went wrong
+      if (fetchErrors.length > 0) {
+        setError(`Game fetch had issues — ${fetchErrors.join('; ')}. Saved ${mapped.length} games from successful sources.`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch games');
     } finally {
