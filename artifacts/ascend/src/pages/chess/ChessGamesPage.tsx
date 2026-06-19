@@ -186,14 +186,16 @@ export function ChessGamesPage() {
     try {
       const data = await fetchChessGames(userId);
       setGames(data);
+      console.log('[LOAD GAMES] Loaded', data.length, 'games for userId', userId);
       // Also fetch accounts
       const accRes = await apiFetch(`/api/chess/accounts/${userId}`);
       if (accRes.ok) {
         const acc = await accRes.json();
+        console.log('[LOAD GAMES] Accounts loaded', acc);
         setAccounts(acc);
       } else {
         const accErr = await accRes.text().catch(() => '');
-        console.warn('Failed to load chess accounts', accRes.status, accErr);
+        console.warn('[LOAD GAMES] Failed to load chess accounts', accRes.status, accErr);
         setAccounts(null);
       }
       const stored = localStorage.getItem(LS_KEY(userId));
@@ -212,15 +214,31 @@ export function ChessGamesPage() {
   async function fetchFromAPIs() {
     setFetching(true);
     setError('');
-    console.log('[FETCH GAMES] Clicked. accounts =', accounts, 'userId =', userId);
+    // Always fetch fresh accounts state before attempting external API calls
+    let activeAccounts = accounts;
+    if (!activeAccounts) {
+      try {
+        const accRes = await apiFetch(`/api/chess/accounts/${userId}`);
+        if (accRes.ok) {
+          activeAccounts = await accRes.json();
+          setAccounts(activeAccounts);
+        } else {
+          const accErr = await accRes.text().catch(() => '');
+          console.warn('[FETCH GAMES] Could not load accounts', accRes.status, accErr);
+        }
+      } catch (e) {
+        console.warn('[FETCH GAMES] Accounts fetch threw', e);
+      }
+    }
+    console.log('[FETCH GAMES] Clicked. accounts =', activeAccounts, 'userId =', userId);
     try {
       const chesscomGames: ChessComGame[] = [];
       const lichessGames: LichessGame[] = [];
       const fetchErrors: string[] = [];
-      if (accounts?.chesscomUsername) {
-        console.log('[FETCH GAMES] Calling Chess.com API for username:', accounts.chesscomUsername);
+      if (activeAccounts?.chesscomUsername) {
+        console.log('[FETCH GAMES] Calling Chess.com API for username:', activeAccounts.chesscomUsername);
         try {
-          const cg = await fetchChessComAllGames(accounts.chesscomUsername);
+          const cg = await fetchChessComAllGames(activeAccounts.chesscomUsername);
           console.log('[FETCH GAMES] Chess.com returned', cg.length, 'games');
           chesscomGames.push(...cg);
         } catch (e) {
@@ -231,10 +249,10 @@ export function ChessGamesPage() {
       } else {
         console.log('[FETCH GAMES] No Chess.com username configured');
       }
-      if (accounts?.lichessUsername) {
-        console.log('[FETCH GAMES] Calling Lichess API for username:', accounts.lichessUsername);
+      if (activeAccounts?.lichessUsername) {
+        console.log('[FETCH GAMES] Calling Lichess API for username:', activeAccounts.lichessUsername);
         try {
-          const lg = await fetchLichessGames(accounts.lichessUsername, 30);
+          const lg = await fetchLichessGames(activeAccounts.lichessUsername, 30);
           console.log('[FETCH GAMES] Lichess returned', lg.length, 'games');
           lichessGames.push(...lg);
         } catch (e) {
@@ -244,6 +262,11 @@ export function ChessGamesPage() {
         }
       } else {
         console.log('[FETCH GAMES] No Lichess username configured');
+      }
+      if (!activeAccounts?.chesscomUsername && !activeAccounts?.lichessUsername) {
+        setError('No chess usernames configured. Go to Settings to set your Chess.com and Lichess usernames.');
+        setFetching(false);
+        return;
       }
       const mapped: ChessGameData[] = [
         ...chesscomGames.map(g => toChessGameData('chess.com', g, accounts?.chesscomUsername || '')),

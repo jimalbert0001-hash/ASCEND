@@ -45,14 +45,20 @@ import { apiFetch } from './api-fetch';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 async function sendDebugLog(payload: { source: string; username: string; status: number; gameCount: number; rawBody?: string; message?: string }) {
+  const url = `${API_BASE_URL}/api/debug/log`;
   try {
-    await fetch(`${API_BASE_URL}/api/debug/log`, {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-  } catch {
-    // silently ignore — this is just for diagnostics
+    if (!res.ok) {
+      console.warn('[sendDebugLog] Server rejected debug log', res.status, url);
+    } else {
+      console.log('[sendDebugLog] Sent to', url);
+    }
+  } catch (e) {
+    console.warn('[sendDebugLog] Network error sending to', url, e);
   }
 }
 
