@@ -114,6 +114,21 @@ app.get('/api/healthz', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
 });
 
+// Debug logging — lightweight, no auth required, so mobile clients can send logs to Vercel
+app.post('/api/debug/log', async (req: Request, res: Response) => {
+  const { source, username, status, gameCount, rawBody, message } = req.body as Record<string, unknown>;
+  logger.info({
+    source,
+    username,
+    status,
+    gameCount,
+    rawBody: typeof rawBody === 'string' ? rawBody.slice(0, 500) : rawBody,
+    message,
+    ip: req.ip,
+  }, 'frontend debug log');
+  res.json({ ok: true });
+});
+
 // Auth — login
 app.get('/api/login', async (req: Request, res: Response) => {
   const supabase = createSupabaseServerClient(req, res);

@@ -42,6 +42,20 @@ export interface ChessStatsData {
 
 import { apiFetch } from './api-fetch';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+async function sendDebugLog(payload: { source: string; username: string; status: number; gameCount: number; rawBody?: string; message?: string }) {
+  try {
+    await fetch(`${API_BASE_URL}/api/debug/log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // silently ignore — this is just for diagnostics
+  }
+}
+
 export async function fetchChessAccounts(userId: string): Promise<ChessAccountData> {
   const res = await apiFetch(`/api/chess/accounts/${userId}`);
   if (!res.ok) throw new Error(await res.text());
@@ -117,17 +131,19 @@ export async function fetchChessComGames(username: string, year: number, month: 
   });
   console.log('[ChessAPI] Chess.com response', res.status, url);
   if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    await sendDebugLog({ source: 'chess.com', username, status: res.status, gameCount: 0, rawBody: text.slice(0, 500), message: 'HTTP error' });
     if (res.status === 404) {
       console.log('[ChessAPI] Chess.com 404, returning empty');
       return [];
     }
-    const text = await res.text().catch(() => '');
     console.warn('[ChessAPI] Chess.com error body:', text);
     throw new Error(`Chess.com API error: ${res.status}`);
   }
   const data = await res.json();
   const games = data.games || [];
   console.log('[ChessAPI] Chess.com parsed', games.length, 'games from', url);
+  await sendDebugLog({ source: 'chess.com', username, status: res.status, gameCount: games.length, rawBody: JSON.stringify(data).slice(0, 500), message: 'OK' });
   return games;
 }
 
@@ -184,11 +200,12 @@ export async function fetchLichessGames(username: string, max = 30): Promise<Lic
   });
   console.log('[ChessAPI] Lichess response', res.status, url);
   if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    await sendDebugLog({ source: 'lichess', username, status: res.status, gameCount: 0, rawBody: text.slice(0, 500), message: 'HTTP error' });
     if (res.status === 404) {
       console.log('[ChessAPI] Lichess 404, returning empty');
       return [];
     }
-    const text = await res.text().catch(() => '');
     console.warn('[ChessAPI] Lichess error body:', text);
     throw new Error(`Lichess API error: ${res.status}`);
   }
@@ -204,5 +221,6 @@ export async function fetchLichessGames(username: string, max = 30): Promise<Lic
     }
   }
   console.log('[ChessAPI] Lichess parsed', games.length, 'games');
+  await sendDebugLog({ source: 'lichess', username, status: res.status, gameCount: games.length, rawBody: text.slice(0, 500), message: 'OK' });
   return games;
 }
