@@ -805,6 +805,11 @@ app.post('/api/chess/games/:userId', async (req: Request, res: Response) => {
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
   const { games = [] } = req.body as { games?: ChessGameInput[] };
+  logger.info({
+    userId: req.params['userId'],
+    incomingGameCount: games.length,
+    firstGame: games.length > 0 ? JSON.stringify(games[0]).slice(0, 2000) : null,
+  }, 'chess_games POST received');
   if (!Array.isArray(games) || games.length === 0) { res.json({ ok: true, count: 0 }); return; }
   const rows = games.map((g: ChessGameInput) => ({
     id: g.id,

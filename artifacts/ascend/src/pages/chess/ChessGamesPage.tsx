@@ -251,8 +251,10 @@ export function ChessGamesPage() {
       ];
       // Sort by date descending
       mapped.sort((a, b) => new Date(b.gameDate).getTime() - new Date(a.gameDate).getTime());
+      console.log('[FETCH GAMES] Mapped', mapped.length, 'games to save. First:', mapped[0]?.id);
       // Save to DB
       await saveChessGames(userId, mapped);
+      console.log('[FETCH GAMES] Saved to backend successfully');
       setGames(mapped);
       setSaved(true);
       const now = Date.now();
